@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finanças Cloud Sync</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* (O estilo CSS permanece o mesmo do código anterior para manter o design) */
+        :root { --primary: #2563eb; --danger: #dc2626; --success: #16a34a; --warning: #ca8a04; --bg: #f1f5f9; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
+        .container { max-width: 950px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 4px solid #cbd5e1; }
+        .card p { font-size: 1.2rem; font-weight: bold; margin: 5px 0 0; }
+        .projecao { background: #1e293b; color: white; border-top-color: var(--primary); }
+        .controls { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+        .field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+        input, select, button { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
+        .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; color: white; }
+        .cat-valor-a-receber { background: var(--warning); }
+        .cat-despesa { background: var(--danger); }
+        .cat-pago { background: #94a3b8; }
+        .cat-recebido { background: var(--success); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>☁️ Finanças na Nuvem</h2>
+        <div>
+            <span id="status-cloud" style="color: #16a34a;">● Sincronizado</span>
+            <button onclick="fecharMes()" style="margin-left:15px; cursor:pointer">Encerrar Mês</button>
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <div class="card"><h3>A Receber</h3><p id="t-receber">R$ 0,00</p></div>
+        <div class="card"><h3>Despesa</h3><p id="t-despesa">R$ 0,00</p></div>
+        <div class="card"><h3>Pago</h3><p id="t-pago">R$ 0,00</p></div>
+        <div class="card"><h3>Recebido</h3><p id="t-recebido">R$ 0,00</p></div>
+        <div class="card projecao"><h3>Diferença (Rec - Desp)</h3><p id="t-dif">R$ 0,00</p></div>
+    </div>
+
+    <div class="controls">
+        <div class="form-row">
+            <div class="field"><label>Data</label><input type="date" id="f-data"></div>
+            <div class="field"><label>Descrição</label><input type="text" id="f-desc"></div>
+            <div class="field"><label>Valor R$</label><input type="number" id="f-valor" step="0.01"></div>
+            <div class="field"><label>Categoria</label>
+                <select id="f-cat">
+                    <option value="Valor a receber">Valor a receber</option>
+                    <option value="Despesa">Despesa</option>
+                    <option value="Pago">Pago</option>
+                    <option value="Recebido">Recebido</option>
+                </select>
+            </div>
+            <button class="btn-add" onclick="adicionarAoBanco()">Adicionar</button>
+        </div>
+        <div style="margin-top: 15px;">
+            <label><strong>Histórico:</strong></label>
+            <select id="select-meses" onchange="carregarDados(this.value)">
+                <option value="atual">Mês Atual (Ativo)</option>
+            </select>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Categoria</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="tabela-corpo"></tbody>
+    </table>
+</div>
+
+<script>
+// 1. Configurações (Preencha com seus dados do painel do Supabase)
+const SUBABASE_URL = 'https://qyadsgivfqzmtjgzmxhr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_PcsW3cKl6uRz1x4jSwQulw_QC4T1pMP';
+
+// 2. Inicialização do Cliente
+const _supabase = supabase.createClient(SUBABASE_URL, SUPABASE_KEY);
+
+let mesSelecionado = 'atual';
+
+// 3. Funções Globais (Colocadas explicitamente no escopo window para evitar ReferenceError)
+window.adicionarAoBanco = async function() {
+    const descEl = document.getElementById('f-desc');
+    const valorEl = document.getElementById('f-valor');
+    const dataEl = document.getElementById('f-data');
+    const catEl = document.getElementById('f-cat');
+
+    if (!descEl.value || !valorEl.value) {
+        alert("Preencha descrição e valor!");
+        return;
+    }
+
+    const payload = {
+        data: dataEl.value,
+        descricao: descEl.value,
+        valor: parseFloat(valorEl.value),
+        categoria: catEl.value,
+        mes_referencia: mesSelecionado === 'atual' ? 'atual' : mesSelecionado
+    };
+
+    const status = document.getElementById('status-cloud');
+    status.innerText = "○ Salvando...";
+
+    const { error } = await _supabase.from('transacoes').insert([payload]);
+    
+    if (error) {
+        alert("Erro ao salvar: " + error.message);
+    } else {
+        descEl.value = '';
+        valorEl.value = '';
+        carregarDados(mesSelecionado);
+    }
+};
+
+window.carregarDados = async function(mes = 'atual') {
+    mesSelecionado = mes;
+    const status = document.getElementById('status-cloud');
+    status.innerText = "○ Carregando...";
+
+    let { data, error } = await _supabase
+        .from('transacoes')
+        .select('*')
+        .eq('mes_referencia', mes)
+        .order('data', { ascending: true });
+
+    if (error) {
+        console.error("Erro na busca:", error);
+    } else {
+        renderizar(data || []);
+        atualizarListaMeses();
+    }
+    status.innerText = "● Sincronizado";
+};
+
+window.excluir = async function(id) {
+    if(confirm("Deseja excluir este registro?")) {
+        await _supabase.from('transacoes').delete().eq('id', id);
+        carregarDados(mesSelecionado);
+    }
+};
+
+window.fecharMes = async function() {
+    const nomeMes = prompt("Nome para arquivar (Ex: Jan/26):");
+    if(!nomeMes) return;
+
+    const { error } = await _supabase
+        .from('transacoes')
+        .update({ mes_referencia: nomeMes })
+        .eq('mes_referencia', 'atual');
+
+    if(!error) carregarDados();
+};
+
+async function atualizarListaMeses() {
+    const { data: todas } = await _supabase.from('transacoes').select('mes_referencia');
+    if(!todas) return;
+
+    const unicos = [...new Set(todas.map(m => m.mes_referencia))];
+    if (!unicos.includes('atual')) unicos.push('atual');
+    
+    const select = document.getElementById('select-meses');
+    select.innerHTML = '';
+    unicos.sort().forEach(m => {
+        const label = m === 'atual' ? 'Mês Atual (Ativo)' : m;
+        select.innerHTML += `<option value="${m}" ${m === mesSelecionado ? 'selected' : ''}>${label}</option>`;
+    });
+}
+
+function renderizar(lista) {
+    const corpo = document.getElementById('tabela-corpo');
+    corpo.innerHTML = '';
+    let somas = { "Valor a receber": 0, "Despesa": 0, "Pago": 0, "Recebido": 0 };
+
+    lista.forEach(t => {
+        somas[t.categoria] += t.valor;
+        const dataBR = t.data ? t.data.split('-').reverse().join('/') : '---';
+        const classe = t.categoria.toLowerCase().replace(/ /g, '-');
+        
+        corpo.innerHTML += `
+            <tr>
+                <td>${dataBR}</td>
+                <td>${t.descricao}</td>
+                <td>R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                <td><span class="badge cat-${classe}">${t.categoria}</span></td>
+                <td><button onclick="excluir(${t.id})" style="color:red; cursor:pointer; border:none; background:none;">Excluir</button></td>
+            </tr>`;
+    });
+
+    document.getElementById('t-receber').innerText = `R$ ${somas["Valor a receber"].toLocaleString('pt-BR')}`;
+    document.getElementById('t-despesa').innerText = `R$ ${somas["Despesa"].toLocaleString('pt-BR')}`;
+    document.getElementById('t-pago').innerText = `R$ ${somas["Pago"].toLocaleString('pt-BR')}`;
+    document.getElementById('t-recebido').innerText = `R$ ${somas["Recebido"].toLocaleString('pt-BR')}`;
+    const dif = somas["Valor a receber"] - somas["Despesa"];
+    const elDif = document.getElementById('t-dif');
+    elDif.innerText = `R$ ${dif.toLocaleString('pt-BR')}`;
+    elDif.style.color = dif < 0 ? 'red' : 'green';
+}
+
+// Inicialização padrão
+document.getElementById('f-data').valueAsDate = new Date();
+carregarDados();
+  
+</script>
+</body>
+</html>
