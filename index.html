@@ -3,33 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanças Cloud - Avançado</title>
+    <title>Finanças & Investimentos Cloud</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --primary: #2563eb; --danger: #dc2626; --success: #16a34a; --warning: #ca8a04; --bg: #f1f5f9; }
+        :root { 
+            --primary: #2563eb; 
+            --danger: #dc2626; 
+            --success: #16a34a; 
+            --warning: #ca8a04; 
+            --invest: #8b5cf6;
+            --bg: #f1f5f9; 
+        }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 10px; color: #1e293b; margin: 0; }
         
         #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: #1e293b; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; color: white; padding: 20px; text-align: center; }
         #login-screen input { padding: 15px; border-radius: 8px; border: none; margin-bottom: 10px; width: 100%; max-width: 300px; font-size: 1.1rem; text-align: center; }
         
         #main-content { display: none; }
-        .container { max-width: 950px; margin: auto; padding-bottom: 40px; }
+        .container { max-width: 1000px; margin: auto; padding-bottom: 40px; }
         
         .header { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding-top: 10px; }
         @media(min-width: 600px) { .header { flex-direction: row; justify-content: space-between; align-items: center; } }
 
         .dashboard { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
         @media(min-width: 480px) { .dashboard { grid-template-columns: repeat(2, 1fr); } }
-        @media(min-width: 900px) { .dashboard { grid-template-columns: repeat(5, 1fr); } }
+        @media(min-width: 900px) { .dashboard { grid-template-columns: repeat(6, 1fr); } }
         
         .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 4px solid #cbd5e1; }
         .card h3 { font-size: 0.7rem; margin: 0; text-transform: uppercase; color: #64748b; }
         .card p { font-size: 1.1rem; font-weight: bold; margin: 5px 0 0; }
+        .card.invest { border-top-color: var(--invest); color: var(--invest); }
         .projecao { background: #1e293b; color: white; border-top-color: var(--primary); }
 
         .controls { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .form-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        @media(min-width: 768px) { .form-row { grid-template-columns: 1.2fr 2fr 1fr 1.5fr auto; align-items: flex-end; } }
+        @media(min-width: 768px) { .form-row { grid-template-columns: 1fr 1.5fr 1fr 1.2fr auto; align-items: flex-end; } }
         
         input, select, button { padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; width: 100%; box-sizing: border-box; }
         .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
@@ -52,6 +60,7 @@
         .cat-despesa { background: var(--danger); }
         .cat-pago { background: #94a3b8; }
         .cat-recebido { background: var(--success); }
+        .cat-investimento { background: var(--invest); }
         
         .btn-action { border: none; background: #f1f5f9; cursor: pointer; font-size: 1.2rem; padding: 10px; border-radius: 8px; margin: 2px; width: auto; }
         .editable:hover { background: #fff7ed; cursor: pointer; border-radius: 4px; }
@@ -67,7 +76,7 @@
 
 <div id="main-content" class="container">
     <div class="header">
-        <h2>☁️ Finanças na Nuvem</h2>
+        <h2>☁️ Finanças & Investimentos</h2>
         <div style="display:flex; gap:5px">
             <button onclick="importarFixos()" style="width:auto; font-size:0.8rem; background:#e0f2fe; color:#0369a1; border:none">+ Gastos Fixos</button>
             <button onclick="fecharMes()" style="cursor:pointer; width: auto; background: white;">Encerrar Mês</button>
@@ -80,7 +89,8 @@
         <div class="card"><h3>Despesa</h3><p id="t-despesa">R$ 0,00</p></div>
         <div class="card"><h3>Pago</h3><p id="t-pago">R$ 0,00</p></div>
         <div class="card"><h3>Recebido</h3><p id="t-recebido">R$ 0,00</p></div>
-        <div class="card projecao"><h3>Diferença</h3><p id="t-dif">R$ 0,00</p></div>
+        <div class="card invest"><h3>Investido</h3><p id="t-invest">R$ 0,00</p></div>
+        <div class="card projecao"><h3>Saldo Final</h3><p id="t-dif">R$ 0,00</p></div>
     </div>
 
     <div class="controls">
@@ -94,16 +104,16 @@
                     <option value="Despesa">Despesa</option>
                     <option value="Pago">Pago</option>
                     <option value="Recebido">Recebido</option>
+                    <option value="Investimento">Investimento</option>
                 </select>
             </div>
-            <button class="btn-add" onclick="adicionarAoBanco()">Adicionar</button>
+            <button class="btn-add" onclick="adicionarAoBanco()">Lançar</button>
         </div>
         <div style="margin-top: 15px; display:flex; align-items:center; justify-content: space-between;">
             <div>
                 <label style="font-size: 0.8rem;"><strong>Mês Exibido:</strong></label>
                 <select id="select-meses" onchange="carregarDados(this.value)" style="padding: 5px; width: auto; margin-left: 10px;"></select>
             </div>
-            <span style="font-size:0.7rem; color:gray">Dica: Clique na descrição ou valor para editar</span>
         </div>
     </div>
 
@@ -121,18 +131,19 @@ const SENHA_MESTRE = "212244";
 const SUBABASE_URL = 'https://qyadsgivfqzmtjgzmxhr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_PcsW3cKl6uRz1x4jSwQulw_QC4T1pMP';
 
-// 🟢 GASTOS FIXOS COM DIAS ESPECÍFICOS
+// 🟢 LISTA ATUALIZADA COM INVESTIMENTO
 const GASTOS_FIXOS = [
-    { dia: 15, descricao: "Banco Inter CC", valor: 1600.00, categoria: "Despesa" },
-    { dia: 20, descricao: "Banco Itau CC", valor: 500.00, categoria: "Despesa" },
-    { dia: 28, descricao: "Nubank CC", valor: 300.00, categoria: "Despesa" },
-    { dia: 25, descricao: "Financiamento Casa", valor: 1650.00, categoria: "Despesa" },
-    { dia: 12, descricao: "Condominio", valor: 500.00, categoria: "Despesa" },
-    { dia: 12, descricao: "Renner", valor: 143.80, categoria: "Despesa" },
-    { dia: 09, descricao: "Netflix", valor: 20.90, categoria: "Despesa" },
-    { dia: 19, descricao: "Spotify", valor: 23.90, categoria: "Despesa" },
-    { dia: 15, descricao: "Salário 15", valor: 1800.00, categoria: "Valor a receber" },
-    { dia: 30, descricao: "Salário 30", valor: 2060.00, categoria: "Valor a receber" }
+    { dia: 5,  descricao: "Banco Inter CC", valor: 1600.00, categoria: "Despesa" },
+    { dia: 10, descricao: "Banco Itau CC", valor: 500.00, categoria: "Despesa" },
+    { dia: 10, descricao: "Nubank CC", valor: 300.00, categoria: "Despesa" },
+    { dia: 12, descricao: "Financiamento Casa", valor: 1650.00, categoria: "Despesa" },
+    { dia: 10, descricao: "Condominio", valor: 500.00, categoria: "Despesa" },
+    { dia: 15, descricao: "Renner", valor: 143.80, categoria: "Despesa" },
+    { dia: 8,  descricao: "Netflix", valor: 20.90, categoria: "Despesa" },
+    { dia: 8,  descricao: "Spotify", valor: 23.90, categoria: "Despesa" },
+    { dia: 15, descricao: "Salário 15", valor: 1600.00, categoria: "Valor a receber" },
+    { dia: 30, descricao: "Salário 30", valor: 1900.00, categoria: "Valor a receber" },
+    { dia: 1,  descricao: "Reserva de Emergência", valor: 200.00, categoria: "Investimento" }
 ];
 
 const _supabase = supabase.createClient(SUBABASE_URL, SUPABASE_KEY);
@@ -162,26 +173,16 @@ window.adicionarAoBanco = async function() {
     d.value = ''; v.value = ''; carregarDados(mesSelecionado);
 };
 
-// 🟢 IMPORTAÇÃO CONSIDERANDO O DIA DEFINIDO
 window.importarFixos = async function() {
-    if(!confirm("Deseja importar os gastos fixos com suas respectivas datas?")) return;
-    
+    if(!confirm("Importar gastos e investimentos fixos?")) return;
     const hoje = new Date();
     const ano = hoje.getFullYear();
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-
-    const lista = GASTOS_FIXOS.map(item => {
-        // Formata a data como AAAA-MM-DD usando o dia definido na lista
-        const diaFormatado = String(item.dia).padStart(2, '0');
-        return {
-            descricao: item.descricao,
-            valor: item.valor,
-            categoria: item.categoria,
-            data: `${ano}-${mes}-${diaFormatado}`,
-            mes_referencia: mesSelecionado
-        };
-    });
-
+    const lista = GASTOS_FIXOS.map(item => ({
+        descricao: item.descricao, valor: item.valor, categoria: item.categoria,
+        data: `${ano}-${mes}-${String(item.dia).padStart(2, '0')}`,
+        mes_referencia: mesSelecionado
+    }));
     await _supabase.from('transacoes').insert(lista);
     carregarDados(mesSelecionado);
 };
@@ -189,10 +190,8 @@ window.importarFixos = async function() {
 window.editarCampo = async function(id, campo, valorAtual) {
     let novoValor = prompt(`Editar ${campo}:`, valorAtual);
     if (novoValor === null || novoValor === valorAtual) return;
-    
     let updateData = {};
     updateData[campo] = campo === 'valor' ? parseFloat(novoValor.replace(',', '.')) : novoValor;
-    
     await _supabase.from('transacoes').update(updateData).eq('id', id);
     carregarDados(mesSelecionado);
 };
@@ -205,7 +204,7 @@ window.carregarDados = async function(mes = 'atual') {
 };
 
 window.toggleStatus = async function(id, cat) {
-    let nova = cat === "Despesa" ? "Pago" : cat === "Pago" ? "Despesa" : cat === "Valor a receber" ? "Recebido" : "Valor a receber";
+    let nova = cat === "Despesa" ? "Pago" : cat === "Pago" ? "Despesa" : cat === "Valor a receber" ? "Recebido" : cat === "Recebido" ? "Valor a receber" : "Investimento";
     await _supabase.from('transacoes').update({ categoria: nova }).eq('id', id);
     carregarDados(mesSelecionado);
 };
@@ -215,7 +214,7 @@ window.excluir = async function(id) {
 };
 
 window.fecharMes = async function() {
-    const nome = prompt("Nome do mês para arquivar (Ex: Jan/26):");
+    const nome = prompt("Arquivar como (Ex: Jan/26):");
     if(!nome) return;
     await _supabase.from('transacoes').update({ mes_referencia: nome }).eq('mes_referencia', 'atual');
     carregarDados();
@@ -235,13 +234,14 @@ async function atualizarListaMeses() {
 function renderizar(lista) {
     const corpo = document.getElementById('tabela-corpo');
     corpo.innerHTML = '';
-    let s = { "Valor a receber": 0, "Despesa": 0, "Pago": 0, "Recebido": 0 };
+    let s = { "Valor a receber": 0, "Despesa": 0, "Pago": 0, "Recebido": 0, "Investimento": 0 };
 
     lista.forEach(t => {
         s[t.categoria] += t.valor;
         const dataBR = t.data ? t.data.split('-').reverse().join('/') : '--';
         const cl = t.categoria.toLowerCase().replace(/ /g, '-');
-        let icon = t.categoria === "Despesa" || t.categoria === "Valor a receber" ? "✅" : "🔄";
+        let icon = (t.categoria === "Despesa" || t.categoria === "Valor a receber") ? "✅" : "🔄";
+        if(t.categoria === "Investimento") icon = "📈";
 
         corpo.innerHTML += `
             <tr>
@@ -250,8 +250,8 @@ function renderizar(lista) {
                 <td data-label="Valor" class="editable" onclick="editarCampo(${t.id}, 'valor', '${t.valor}')">R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
                 <td data-label="Status"><span class="badge cat-${cl}" onclick="toggleStatus(${t.id}, '${t.categoria}')">${t.categoria}</span></td>
                 <td data-label="Ações">
-                    <button class="btn-action" onclick="toggleStatus(${t.id}, '${t.categoria}')">${icon}</button>
-                    <button class="btn-action" onclick="excluir(${t.id})">🗑️</button>
+                    <button class="btn-action" onclick="toggleStatus(${t.id}, '${t.categoria}')" title="Mudar Status">${icon}</button>
+                    <button class="btn-action" onclick="excluir(${t.id})" title="Excluir">🗑️</button>
                 </td>
             </tr>`;
     });
@@ -260,14 +260,16 @@ function renderizar(lista) {
     document.getElementById('t-despesa').innerText = `R$ ${s["Despesa"].toLocaleString('pt-BR')}`;
     document.getElementById('t-pago').innerText = `R$ ${s["Pago"].toLocaleString('pt-BR')}`;
     document.getElementById('t-recebido').innerText = `R$ ${s["Recebido"].toLocaleString('pt-BR')}`;
-    const d = (s["Valor a receber"] + s["Recebido"]) - (s["Despesa"] + s["Pago"]);
+    document.getElementById('t-invest').innerText = `R$ ${s["Investimento"].toLocaleString('pt-BR')}`;
+    
+    // Saldo Final = (Tudo que recebi) - (Tudo que paguei/vou pagar) - (O que investi)
+    const saldo = (s["Valor a receber"] + s["Recebido"]) - (s["Despesa"] + s["Pago"]) - s["Investimento"];
     const el = document.getElementById('t-dif');
-    el.innerText = `R$ ${d.toLocaleString('pt-BR')}`;
-    el.style.color = d < 0 ? 'red' : '#16a34a';
+    el.innerText = `R$ ${saldo.toLocaleString('pt-BR')}`;
+    el.style.color = saldo < 0 ? '#fb7185' : '#4ade80';
 }
 
 document.getElementById('f-data').valueAsDate = new Date();
 </script>
 </body>
 </html>
-
