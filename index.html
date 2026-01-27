@@ -123,10 +123,16 @@ const SUPABASE_KEY = 'sb_publishable_PcsW3cKl6uRz1x4jSwQulw_QC4T1pMP';
 
 // 🟢 DEFINA SEUS GASTOS FIXOS AQUI (Eles serão importados ao clicar no botão azul)
 const GASTOS_FIXOS = [
-    { descricao: "Aluguel", valor: 1200, categoria: "Despesa" },
-    { descricao: "Internet", valor: 100, categoria: "Despesa" },
-    { descricao: "Academia", valor: 90, categoria: "Despesa" },
-    { descricao: "Salário", valor: 3500, categoria: "Valor a receber" }
+    { descricao: "Banco Inter CC", valor: 1600,00, categoria: "Despesa" },
+    { descricao: "Banco Itau CC", valor: 500,00, categoria: "Despesa" },
+    { descricao: "Nubank CC", valor: 300,00, categoria: "Despesa" },
+    { descricao: "Financiamento Casa", valor: 1650,00, categoria: "Despesa" },
+    { descricao: "Condominio", valor: 500,00, categoria: "Despesa" },
+    { descricao: "Renner", valor: 143,80, categoria: "Despesa" },
+    { descricao: "Netflix", valor: 20,90, categoria: "Despesa" },
+    { descricao: "Spotify", valor: 23,90, categoria: "Despesa" },
+    { descricao: "Salário 15", valor: 1600,00, categoria: "Valor a receber" }
+     { descricao: "Salário 30", valor: 1900,00, categoria: "Valor a receber" }
 ];
 
 const _supabase = supabase.createClient(SUBABASE_URL, SUPABASE_KEY);
@@ -255,3 +261,4 @@ document.getElementById('f-data').valueAsDate = new Date();
 </script>
 </body>
 </html>
+
