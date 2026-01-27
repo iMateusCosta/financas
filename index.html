@@ -3,60 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanças Cloud Sync - Protegido</title>
+    <title>Finanças Cloud - Mobile Ready</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --primary: #2563eb; --danger: #dc2626; --success: #16a34a; --warning: #ca8a04; --bg: #f1f5f9; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
+        :root { 
+            --primary: #2563eb; 
+            --danger: #dc2626; 
+            --success: #16a34a; 
+            --warning: #ca8a04; 
+            --bg: #f1f5f9; 
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 10px; color: #1e293b; margin: 0; }
         
         /* Estilo da Tela de Login */
-        #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: #1e293b; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; color: white; }
-        #login-screen input { padding: 12px; border-radius: 8px; border: none; margin-bottom: 10px; width: 250px; text-align: center; font-size: 1.1rem; }
+        #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: #1e293b; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; color: white; padding: 20px; text-align: center; }
+        #login-screen input { padding: 15px; border-radius: 8px; border: none; margin-bottom: 10px; width: 100%; max-width: 300px; font-size: 1.1rem; text-align: center; }
         
-        /* Esconde o conteúdo principal antes do login */
         #main-content { display: none; }
+        .container { max-width: 950px; margin: auto; padding-bottom: 40px; }
+        
+        .header { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding-top: 10px; }
+        @media(min-width: 600px) { .header { flex-direction: row; justify-content: space-between; align-items: center; } }
 
-        .container { max-width: 950px; margin: auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        /* Dashboard Responsivo */
+        .dashboard { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
+        @media(min-width: 480px) { .dashboard { grid-template-columns: repeat(2, 1fr); } }
+        @media(min-width: 900px) { .dashboard { grid-template-columns: repeat(5, 1fr); } }
+        
         .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 4px solid #cbd5e1; }
-        .card p { font-size: 1.2rem; font-weight: bold; margin: 5px 0 0; }
+        .card h3 { font-size: 0.7rem; margin: 0; text-transform: uppercase; color: #64748b; }
+        .card p { font-size: 1.1rem; font-weight: bold; margin: 5px 0 0; }
         .projecao { background: #1e293b; color: white; border-top-color: var(--primary); }
-        .controls { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-        .field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
-        input, select, button { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
+
+        /* Formulário Responsivo */
+        .controls { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .form-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        @media(min-width: 768px) { .form-row { grid-template-columns: 1.2fr 2fr 1fr 1.5fr auto; align-items: flex-end; } }
+        
+        .field { display: flex; flex-direction: column; gap: 4px; }
+        .field label { font-size: 0.8rem; font-weight: bold; }
+        input, select, button { padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; width: 100%; box-sizing: border-box; }
         
         .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
-        
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; color: white; cursor: pointer; }
+
+        /* Tabela que vira Cards no Celular */
+        @media (max-width: 767px) {
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            tr { background: white; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 10px; border: 1px solid #e2e8f0; }
+            td { border: none; position: relative; padding-left: 45%; padding-top: 10px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; text-align: right; }
+            td:last-child { border-bottom: none; text-align: center; padding-left: 0; }
+            td:before { position: absolute; left: 10px; width: 40%; text-align: left; font-weight: bold; color: #64748b; content: attr(data-label); }
+        }
+
+        @media (min-width: 768px) {
+            table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+            th, td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+            th { background: #f8fafc; font-size: 0.85rem; color: #64748b; }
+        }
+
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; color: white; cursor: pointer; display: inline-block; }
         .cat-valor-a-receber { background: var(--warning); }
         .cat-despesa { background: var(--danger); }
         .cat-pago { background: #94a3b8; }
         .cat-recebido { background: var(--success); }
         
-        .btn-action { border: none; background: none; cursor: pointer; font-size: 1.1rem; padding: 5px; transition: 0.2s; }
-        .btn-action:hover { transform: scale(1.2); }
+        .btn-action { border: none; background: #f1f5f9; cursor: pointer; font-size: 1.2rem; padding: 10px; border-radius: 8px; margin: 2px; width: auto; display: inline-block; }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
     <h2>🔐 Acesso Restrito</h2>
-    <p>Digite sua senha para gerenciar as finanças:</p>
-    <input type="password" id="senha-input" placeholder="Sua senha...">
-    <button onclick="verificarSenha()" class="btn-add">Entrar</button>
+    <input type="password" id="senha-input" placeholder="Digite a senha...">
+    <button onclick="verificarSenha()" class="btn-add" style="max-width:300px">Entrar</button>
 </div>
 
 <div id="main-content" class="container">
     <div class="header">
         <h2>☁️ Finanças na Nuvem</h2>
         <div>
-            <span id="status-cloud" style="color: #16a34a;">● Sincronizado</span>
-            <button onclick="fecharMes()" style="margin-left:15px; cursor:pointer">Encerrar Mês</button>
-            <button onclick="logout()" style="margin-left:5px; color: grey;">Sair</button>
+            <button onclick="fecharMes()" style="cursor:pointer; width: auto; background: white;">Encerrar Mês</button>
+            <button onclick="logout()" style="width: auto; background: none; border: none; color: #64748b;">Sair</button>
         </div>
     </div>
 
@@ -65,7 +94,7 @@
         <div class="card"><h3>Despesa</h3><p id="t-despesa">R$ 0,00</p></div>
         <div class="card"><h3>Pago</h3><p id="t-pago">R$ 0,00</p></div>
         <div class="card"><h3>Recebido</h3><p id="t-recebido">R$ 0,00</p></div>
-        <div class="card projecao"><h3>Diferença (Rec - Desp)</h3><p id="t-dif">R$ 0,00</p></div>
+        <div class="card projecao"><h3>Diferença</h3><p id="t-dif">R$ 0,00</p></div>
     </div>
 
     <div class="controls">
@@ -84,16 +113,14 @@
             <button class="btn-add" onclick="adicionarAoBanco()">Adicionar</button>
         </div>
         <div style="margin-top: 15px;">
-            <label><strong>Histórico:</strong></label>
-            <select id="select-meses" onchange="carregarDados(this.value)">
-                <option value="atual">Mês Atual (Ativo)</option>
-            </select>
+            <label style="font-size: 0.8rem;"><strong>Histórico:</strong></label>
+            <select id="select-meses" onchange="carregarDados(this.value)" style="padding: 5px; width: auto; margin-left: 10px;"></select>
         </div>
     </div>
 
     <table>
         <thead>
-            <tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Categoria</th><th>Ações</th></tr>
+            <tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Ações</th></tr>
         </thead>
         <tbody id="tabela-corpo"></tbody>
     </table>
@@ -101,139 +128,107 @@
 
 <script>
 // --- CONFIGURAÇÃO ---
-const SENHA_MESTRE = "212244"; // 🟢 ALTERE SUA SENHA AQUI
+const SENHA_MESTRE = "212244"; // 🟢 MUDE SUA SENHA AQUI
 const SUBABASE_URL = 'https://qyadsgivfqzmtjgzmxhr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_PcsW3cKl6uRz1x4jSwQulw_QC4T1pMP';
 
 const _supabase = supabase.createClient(SUBABASE_URL, SUPABASE_KEY);
 let mesSelecionado = 'atual';
 
-// --- LOGICA DE ACESSO ---
+// --- ACESSO ---
 function verificarSenha() {
-    const digitada = document.getElementById('senha-input').value;
-    if (digitada === SENHA_MESTRE) {
+    if (document.getElementById('senha-input').value === SENHA_MESTRE) {
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('main-content').style.display = 'block';
         carregarDados();
-    } else {
-        alert("Senha incorreta!");
-    }
+    } else { alert("Senha incorreta!"); }
 }
+function logout() { location.reload(); }
 
-function logout() {
-    location.reload(); // Reinicia a página e volta pro login
-}
-
-// --- LOGICA DO BANCO ---
+// --- BANCO DE DADOS ---
 window.adicionarAoBanco = async function() {
-    const descEl = document.getElementById('f-desc');
-    const valorEl = document.getElementById('f-valor');
-    const dataEl = document.getElementById('f-data');
-    const catEl = document.getElementById('f-cat');
-
-    if (!descEl.value || !valorEl.value) return alert("Preencha tudo!");
+    const d = document.getElementById('f-desc');
+    const v = document.getElementById('f-valor');
+    if (!d.value || !v.value) return alert("Preencha descrição e valor!");
 
     const payload = {
-        data: dataEl.value,
-        descricao: descEl.value,
-        valor: parseFloat(valorEl.value),
-        categoria: catEl.value,
+        data: document.getElementById('f-data').value,
+        descricao: d.value,
+        valor: parseFloat(v.value),
+        categoria: document.getElementById('f-cat').value,
         mes_referencia: mesSelecionado
     };
 
     const { error } = await _supabase.from('transacoes').insert([payload]);
-    if (!error) {
-        descEl.value = ''; valorEl.value = '';
-        carregarDados(mesSelecionado);
-    }
+    if (!error) { d.value = ''; v.value = ''; carregarDados(mesSelecionado); }
 };
 
 window.carregarDados = async function(mes = 'atual') {
     mesSelecionado = mes;
-    let { data, error } = await _supabase
-        .from('transacoes')
-        .select('*')
-        .eq('mes_referencia', mes)
-        .order('data', { ascending: true });
-
-    if (!error) {
-        renderizar(data || []);
-        atualizarListaMeses();
-    }
+    let { data, error } = await _supabase.from('transacoes').select('*').eq('mes_referencia', mes).order('data', { ascending: true });
+    if (!error) { renderizar(data || []); atualizarListaMeses(); }
 };
 
-// 🟢 FUNÇÃO PARA ALTERAR STATUS RAPIDAMENTE
-window.toggleStatus = async function(id, categoriaAtual) {
-    let novaCat = categoriaAtual;
-    if (categoriaAtual === "Despesa") novaCat = "Pago";
-    else if (categoriaAtual === "Pago") novaCat = "Despesa";
-    else if (categoriaAtual === "Valor a receber") novaCat = "Recebido";
-    else if (categoriaAtual === "Recebido") novaCat = "Valor a receber";
-
-    await _supabase.from('transacoes').update({ categoria: novaCat }).eq('id', id);
+window.toggleStatus = async function(id, cat) {
+    let nova = cat === "Despesa" ? "Pago" : cat === "Pago" ? "Despesa" : cat === "Valor a receber" ? "Recebido" : "Valor a receber";
+    await _supabase.from('transacoes').update({ categoria: nova }).eq('id', id);
     carregarDados(mesSelecionado);
 };
 
 window.excluir = async function(id) {
-    if(confirm("Excluir registro?")) {
-        await _supabase.from('transacoes').delete().eq('id', id);
-        carregarDados(mesSelecionado);
-    }
+    if(confirm("Excluir?")) { await _supabase.from('transacoes').delete().eq('id', id); carregarDados(mesSelecionado); }
 };
 
 window.fecharMes = async function() {
-    const nomeMes = prompt("Nome para arquivar (Ex: Jan/26):");
-    if(!nomeMes) return;
-    await _supabase.from('transacoes').update({ mes_referencia: nomeMes }).eq('mes_referencia', 'atual');
+    const nome = prompt("Nome do mês (Ex: Jan/26):");
+    if(!nome) return;
+    await _supabase.from('transacoes').update({ mes_referencia: nome }).eq('mes_referencia', 'atual');
     carregarDados();
 };
 
 async function atualizarListaMeses() {
-    const { data: todas } = await _supabase.from('transacoes').select('mes_referencia');
-    if(!todas) return;
-    const unicos = [...new Set(todas.map(m => m.mes_referencia))];
+    const { data } = await _supabase.from('transacoes').select('mes_referencia');
+    const unicos = [...new Set((data || []).map(m => m.mes_referencia))];
     if (!unicos.includes('atual')) unicos.push('atual');
-    const select = document.getElementById('select-meses');
-    select.innerHTML = '';
+    const s = document.getElementById('select-meses');
+    s.innerHTML = '';
     unicos.sort().forEach(m => {
-        select.innerHTML += `<option value="${m}" ${m === mesSelecionado ? 'selected' : ''}>${m === 'atual' ? 'Mês Atual' : m}</option>`;
+        s.innerHTML += `<option value="${m}" ${m === mesSelecionado ? 'selected' : ''}>${m === 'atual' ? 'Mês Atual' : m}</option>`;
     });
 }
 
 function renderizar(lista) {
     const corpo = document.getElementById('tabela-corpo');
     corpo.innerHTML = '';
-    let somas = { "Valor a receber": 0, "Despesa": 0, "Pago": 0, "Recebido": 0 };
+    let s = { "Valor a receber": 0, "Despesa": 0, "Pago": 0, "Recebido": 0 };
 
     lista.forEach(t => {
-        somas[t.categoria] += t.valor;
-        const dataBR = t.data ? t.data.split('-').reverse().join('/') : '---';
-        const classe = t.categoria.toLowerCase().replace(/ /g, '-');
-        
-        // Ícone de atalho baseado na categoria
-        let iconeAcao = t.categoria === "Despesa" || t.categoria === "Valor a receber" ? "✅" : "🔄";
+        s[t.categoria] += t.valor;
+        const dataBR = t.data ? t.data.split('-').reverse().join('/') : '--';
+        const cl = t.categoria.toLowerCase().replace(/ /g, '-');
+        let icon = t.categoria === "Despesa" || t.categoria === "Valor a receber" ? "✅" : "🔄";
 
         corpo.innerHTML += `
             <tr>
-                <td>${dataBR}</td>
-                <td>${t.descricao}</td>
-                <td>R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
-                <td><span class="badge cat-${classe}" onclick="toggleStatus(${t.id}, '${t.categoria}')">${t.categoria}</span></td>
-                <td>
-                    <button class="btn-action" title="Alterar Status" onclick="toggleStatus(${t.id}, '${t.categoria}')">${iconeAcao}</button>
-                    <button class="btn-action" title="Excluir" onclick="excluir(${t.id})">🗑️</button>
+                <td data-label="Data">${dataBR}</td>
+                <td data-label="Descrição">${t.descricao}</td>
+                <td data-label="Valor">R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                <td data-label="Status"><span class="badge cat-${cl}" onclick="toggleStatus(${t.id}, '${t.categoria}')">${t.categoria}</span></td>
+                <td data-label="Ações">
+                    <button class="btn-action" onclick="toggleStatus(${t.id}, '${t.categoria}')">${icon}</button>
+                    <button class="btn-action" onclick="excluir(${t.id})">🗑️</button>
                 </td>
             </tr>`;
     });
 
-    document.getElementById('t-receber').innerText = `R$ ${somas["Valor a receber"].toLocaleString('pt-BR')}`;
-    document.getElementById('t-despesa').innerText = `R$ ${somas["Despesa"].toLocaleString('pt-BR')}`;
-    document.getElementById('t-pago').innerText = `R$ ${somas["Pago"].toLocaleString('pt-BR')}`;
-    document.getElementById('t-recebido').innerText = `R$ ${somas["Recebido"].toLocaleString('pt-BR')}`;
-    const dif = somas["Valor a receber"] - somas["Despesa"];
-    const elDif = document.getElementById('t-dif');
-    elDif.innerText = `R$ ${dif.toLocaleString('pt-BR')}`;
-    elDif.style.color = dif < 0 ? 'red' : 'green';
+    document.getElementById('t-receber').innerText = `R$ ${s["Valor a receber"].toLocaleString('pt-BR')}`;
+    document.getElementById('t-despesa').innerText = `R$ ${s["Despesa"].toLocaleString('pt-BR')}`;
+    document.getElementById('t-pago').innerText = `R$ ${s["Pago"].toLocaleString('pt-BR')}`;
+    document.getElementById('t-recebido').innerText = `R$ ${s["Recebido"].toLocaleString('pt-BR')}`;
+    const d = s["Valor a receber"] - s["Despesa"];
+    const el = document.getElementById('t-dif');
+    el.innerText = `R$ ${d.toLocaleString('pt-BR')}`;
+    el.style.color = d < 0 ? 'red' : '#4ade80';
 }
 
 document.getElementById('f-data').valueAsDate = new Date();
