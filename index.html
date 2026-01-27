@@ -131,7 +131,7 @@ const SENHA_MESTRE = "212244";
 const SUBABASE_URL = 'https://qyadsgivfqzmtjgzmxhr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_PcsW3cKl6uRz1x4jSwQulw_QC4T1pMP';
 
-// 🟢 LISTA ATUALIZADA COM INVESTIMENTO
+// 🟢 LISTA DE GASTOS FIXOS
 const GASTOS_FIXOS = [
     { dia: 5,  descricao: "Banco Inter CC", valor: 1600.00, categoria: "Despesa" },
     { dia: 10, descricao: "Banco Itau CC", valor: 500.00, categoria: "Despesa" },
@@ -143,7 +143,8 @@ const GASTOS_FIXOS = [
     { dia: 8,  descricao: "Spotify", valor: 23.90, categoria: "Despesa" },
     { dia: 15, descricao: "Salário 15", valor: 1600.00, categoria: "Valor a receber" },
     { dia: 30, descricao: "Salário 30", valor: 1900.00, categoria: "Valor a receber" },
-    { dia: 1,  descricao: "Reserva de Emergência", valor: 200.00, categoria: "Investimento" }
+    { dia: 1,  descricao: "CDB", valor: 700.00, categoria: "Investimento" }
+    { dia: 1,  descricao: "Selic", valor: 181.56, categoria: "Investimento" }
 ];
 
 const _supabase = supabase.createClient(SUBABASE_URL, SUPABASE_KEY);
@@ -262,8 +263,9 @@ function renderizar(lista) {
     document.getElementById('t-recebido').innerText = `R$ ${s["Recebido"].toLocaleString('pt-BR')}`;
     document.getElementById('t-invest').innerText = `R$ ${s["Investimento"].toLocaleString('pt-BR')}`;
     
-    // Saldo Final = (Tudo que recebi) - (Tudo que paguei/vou pagar) - (O que investi)
-    const saldo = (s["Valor a receber"] + s["Recebido"]) - (s["Despesa"] + s["Pago"]) - s["Investimento"];
+    // NOVO CÁLCULO: Saldo Final = (Ganhos) - (Gastos). Investimento NÃO é subtraído.
+    const saldo = (s["Valor a receber"] + s["Recebido"]) - (s["Despesa"] + s["Pago"]);
+    
     const el = document.getElementById('t-dif');
     el.innerText = `R$ ${saldo.toLocaleString('pt-BR')}`;
     el.style.color = saldo < 0 ? '#fb7185' : '#4ade80';
