@@ -121,18 +121,18 @@ const SENHA_MESTRE = "212244";
 const SUBABASE_URL = 'https://qyadsgivfqzmtjgzmxhr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_PcsW3cKl6uRz1x4jSwQulw_QC4T1pMP';
 
-// 🟢 DEFINA SEUS GASTOS FIXOS AQUI
+// 🟢 GASTOS FIXOS COM DIAS ESPECÍFICOS
 const GASTOS_FIXOS = [
-    { descricao: "Banco Inter CC", valor: 1600.00, categoria: "Despesa" },
-    { descricao: "Banco Itau CC", valor: 500.00, categoria: "Despesa" },
-    { descricao: "Nubank CC", valor: 300.00, categoria: "Despesa" },
-    { descricao: "Financiamento Casa", valor: 1650.00, categoria: "Despesa" },
-    { descricao: "Condominio", valor: 500.00, categoria: "Despesa" },
-    { descricao: "Renner", valor: 143.80, categoria: "Despesa" },
-    { descricao: "Netflix", valor: 20.90, categoria: "Despesa" },
-    { descricao: "Spotify", valor: 23.90, categoria: "Despesa" },
-    { descricao: "Salário 15", valor: 1600.00, categoria: "Valor a receber" },
-    { descricao: "Salário 30", valor: 1900.00, categoria: "Valor a receber" }
+    { dia: 15, descricao: "Banco Inter CC", valor: 1600.00, categoria: "Despesa" },
+    { dia: 20, descricao: "Banco Itau CC", valor: 500.00, categoria: "Despesa" },
+    { dia: 28, descricao: "Nubank CC", valor: 300.00, categoria: "Despesa" },
+    { dia: 25, descricao: "Financiamento Casa", valor: 1650.00, categoria: "Despesa" },
+    { dia: 12, descricao: "Condominio", valor: 500.00, categoria: "Despesa" },
+    { dia: 12, descricao: "Renner", valor: 143.80, categoria: "Despesa" },
+    { dia: 09, descricao: "Netflix", valor: 20.90, categoria: "Despesa" },
+    { dia: 19, descricao: "Spotify", valor: 23.90, categoria: "Despesa" },
+    { dia: 15, descricao: "Salário 15", valor: 1600.00, categoria: "Valor a receber" },
+    { dia: 30, descricao: "Salário 30", valor: 1900.00, categoria: "Valor a receber" }
 ];
 
 const _supabase = supabase.createClient(SUBABASE_URL, SUPABASE_KEY);
@@ -162,14 +162,26 @@ window.adicionarAoBanco = async function() {
     d.value = ''; v.value = ''; carregarDados(mesSelecionado);
 };
 
+// 🟢 IMPORTAÇÃO CONSIDERANDO O DIA DEFINIDO
 window.importarFixos = async function() {
-    if(!confirm("Deseja importar os gastos fixos para este mês?")) return;
-    const hoje = new Date().toISOString().split('T')[0];
-    const lista = GASTOS_FIXOS.map(item => ({
-        ...item,
-        data: hoje,
-        mes_referencia: mesSelecionado
-    }));
+    if(!confirm("Deseja importar os gastos fixos com suas respectivas datas?")) return;
+    
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+
+    const lista = GASTOS_FIXOS.map(item => {
+        // Formata a data como AAAA-MM-DD usando o dia definido na lista
+        const diaFormatado = String(item.dia).padStart(2, '0');
+        return {
+            descricao: item.descricao,
+            valor: item.valor,
+            categoria: item.categoria,
+            data: `${ano}-${mes}-${diaFormatado}`,
+            mes_referencia: mesSelecionado
+        };
+    });
+
     await _supabase.from('transacoes').insert(lista);
     carregarDados(mesSelecionado);
 };
