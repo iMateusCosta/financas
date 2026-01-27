@@ -27,6 +27,9 @@
         .cat-despesa { background: var(--danger); }
         .cat-pago { background: #94a3b8; }
         .cat-recebido { background: var(--success); }
+        .badge { cursor: pointer; transition: transform 0.1s; }
+.badge:hover { transform: scale(1.1); filter: brightness(1.1); }
+tr:hover { background-color: #f8fafc; }
     </style>
 </head>
 <body>
@@ -34,6 +37,9 @@
 <div class="container">
     <div class="header">
         <h2>☁️ Finanças na Nuvem</h2>
+        <div id="aviso-view" style="display:none; background:#fef3c7; color:#92400e; padding:10px; border-radius:8px; margin-bottom:15px; text-align:center; font-weight:bold;">
+    ⚠️ Você está visualizando um MÊS ARQUIVADO.
+</div>
         <div>
             <span id="status-cloud" style="color: #16a34a;">● Sincronizado</span>
             <button onclick="fecharMes()" style="margin-left:15px; cursor:pointer">Encerrar Mês</button>
@@ -125,9 +131,14 @@ window.adicionarAoBanco = async function() {
 
 window.carregarDados = async function(mes = 'atual') {
     mesSelecionado = mes;
+    
+    // Mostra aviso se não for o mês atual
+    const aviso = document.getElementById('aviso-view');
+    aviso.style.display = (mes === 'atual') ? 'none' : 'block';
+
     const status = document.getElementById('status-cloud');
     status.innerText = "○ Carregando...";
-
+    
     let { data, error } = await _supabase
         .from('transacoes')
         .select('*')
@@ -177,6 +188,18 @@ async function atualizarListaMeses() {
     });
 }
 
+window.mudarStatus = async function(id, categoriaAtual) {
+    const categorias = ["Valor a receber", "Despesa", "Pago", "Recebido"];
+    const proxima = categorias[(categorias.indexOf(categoriaAtual) + 1) % categorias.length];
+    
+    const { error } = await _supabase
+        .from('transacoes')
+        .update({ categoria: proxima })
+        .eq('id', id);
+    
+    if(!error) carregarDados(mesSelecionado);
+};
+
 function renderizar(lista) {
     const corpo = document.getElementById('tabela-corpo');
     corpo.innerHTML = '';
@@ -192,19 +215,30 @@ function renderizar(lista) {
                 <td>${dataBR}</td>
                 <td>${t.descricao}</td>
                 <td>R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
-                <td><span class="badge cat-${classe}">${t.categoria}</span></td>
-                <td><button onclick="excluir(${t.id})" style="color:red; cursor:pointer; border:none; background:none;">Excluir</button></td>
+                <td>
+                    <span class="badge cat-${classe}" title="Clique para mudar status" 
+                          onclick="mudarStatus(${t.id}, '${t.categoria}')">
+                        ${t.categoria}
+                    </span>
+                </td>
+                <td>
+                    <button onclick="excluir(${t.id})" style="color:var(--danger); cursor:pointer; border:none; background:none; font-weight:bold;">
+                        Excluir
+                    </button>
+                </td>
             </tr>`;
     });
 
-    document.getElementById('t-receber').innerText = `R$ ${somas["Valor a receber"].toLocaleString('pt-BR')}`;
-    document.getElementById('t-despesa').innerText = `R$ ${somas["Despesa"].toLocaleString('pt-BR')}`;
-    document.getElementById('t-pago').innerText = `R$ ${somas["Pago"].toLocaleString('pt-BR')}`;
-    document.getElementById('t-recebido').innerText = `R$ ${somas["Recebido"].toLocaleString('pt-BR')}`;
+    // Atualização dos cards do dashboard (mantém igual ao seu)
+    document.getElementById('t-receber').innerText = `R$ ${somas["Valor a receber"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+    document.getElementById('t-despesa').innerText = `R$ ${somas["Despesa"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+    document.getElementById('t-pago').innerText = `R$ ${somas["Pago"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+    document.getElementById('t-recebido').innerText = `R$ ${somas["Recebido"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+    
     const dif = somas["Valor a receber"] - somas["Despesa"];
     const elDif = document.getElementById('t-dif');
-    elDif.innerText = `R$ ${dif.toLocaleString('pt-BR')}`;
-    elDif.style.color = dif < 0 ? 'red' : 'green';
+    elDif.innerText = `R$ ${dif.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+    elDif.style.color = dif < 0 ? 'var(--danger)' : 'var(--success)';
 }
 
 // Inicialização padrão
@@ -214,3 +248,4 @@ carregarDados();
 </script>
 </body>
 </html>
+
