@@ -3,20 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanças Cloud - Mobile Ready</title>
+    <title>Finanças Cloud - Avançado</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { 
-            --primary: #2563eb; 
-            --danger: #dc2626; 
-            --success: #16a34a; 
-            --warning: #ca8a04; 
-            --bg: #f1f5f9; 
-        }
-
+        :root { --primary: #2563eb; --danger: #dc2626; --success: #16a34a; --warning: #ca8a04; --bg: #f1f5f9; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 10px; color: #1e293b; margin: 0; }
         
-        /* Estilo da Tela de Login */
         #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: #1e293b; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; color: white; padding: 20px; text-align: center; }
         #login-screen input { padding: 15px; border-radius: 8px; border: none; margin-bottom: 10px; width: 100%; max-width: 300px; font-size: 1.1rem; text-align: center; }
         
@@ -26,7 +18,6 @@
         .header { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding-top: 10px; }
         @media(min-width: 600px) { .header { flex-direction: row; justify-content: space-between; align-items: center; } }
 
-        /* Dashboard Responsivo */
         .dashboard { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
         @media(min-width: 480px) { .dashboard { grid-template-columns: repeat(2, 1fr); } }
         @media(min-width: 900px) { .dashboard { grid-template-columns: repeat(5, 1fr); } }
@@ -36,31 +27,24 @@
         .card p { font-size: 1.1rem; font-weight: bold; margin: 5px 0 0; }
         .projecao { background: #1e293b; color: white; border-top-color: var(--primary); }
 
-        /* Formulário Responsivo */
         .controls { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .form-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
         @media(min-width: 768px) { .form-row { grid-template-columns: 1.2fr 2fr 1fr 1.5fr auto; align-items: flex-end; } }
         
-        .field { display: flex; flex-direction: column; gap: 4px; }
-        .field label { font-size: 0.8rem; font-weight: bold; }
         input, select, button { padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; width: 100%; box-sizing: border-box; }
-        
         .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
 
-        /* Tabela que vira Cards no Celular */
         @media (max-width: 767px) {
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
             tr { background: white; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 10px; border: 1px solid #e2e8f0; }
             td { border: none; position: relative; padding-left: 45%; padding-top: 10px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; text-align: right; }
-            td:last-child { border-bottom: none; text-align: center; padding-left: 0; }
             td:before { position: absolute; left: 10px; width: 40%; text-align: left; font-weight: bold; color: #64748b; content: attr(data-label); }
         }
 
         @media (min-width: 768px) {
             table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
             th, td { padding: 15px; text-align: left; border-bottom: 1px solid #f1f5f9; }
-            th { background: #f8fafc; font-size: 0.85rem; color: #64748b; }
         }
 
         .badge { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; color: white; cursor: pointer; display: inline-block; }
@@ -69,7 +53,8 @@
         .cat-pago { background: #94a3b8; }
         .cat-recebido { background: var(--success); }
         
-        .btn-action { border: none; background: #f1f5f9; cursor: pointer; font-size: 1.2rem; padding: 10px; border-radius: 8px; margin: 2px; width: auto; display: inline-block; }
+        .btn-action { border: none; background: #f1f5f9; cursor: pointer; font-size: 1.2rem; padding: 10px; border-radius: 8px; margin: 2px; width: auto; }
+        .editable:hover { background: #fff7ed; cursor: pointer; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -83,7 +68,8 @@
 <div id="main-content" class="container">
     <div class="header">
         <h2>☁️ Finanças na Nuvem</h2>
-        <div>
+        <div style="display:flex; gap:5px">
+            <button onclick="importarFixos()" style="width:auto; font-size:0.8rem; background:#e0f2fe; color:#0369a1; border:none">+ Gastos Fixos</button>
             <button onclick="fecharMes()" style="cursor:pointer; width: auto; background: white;">Encerrar Mês</button>
             <button onclick="logout()" style="width: auto; background: none; border: none; color: #64748b;">Sair</button>
         </div>
@@ -112,9 +98,12 @@
             </div>
             <button class="btn-add" onclick="adicionarAoBanco()">Adicionar</button>
         </div>
-        <div style="margin-top: 15px;">
-            <label style="font-size: 0.8rem;"><strong>Histórico:</strong></label>
-            <select id="select-meses" onchange="carregarDados(this.value)" style="padding: 5px; width: auto; margin-left: 10px;"></select>
+        <div style="margin-top: 15px; display:flex; align-items:center; justify-content: space-between;">
+            <div>
+                <label style="font-size: 0.8rem;"><strong>Mês Exibido:</strong></label>
+                <select id="select-meses" onchange="carregarDados(this.value)" style="padding: 5px; width: auto; margin-left: 10px;"></select>
+            </div>
+            <span style="font-size:0.7rem; color:gray">Dica: Clique na descrição ou valor para editar</span>
         </div>
     </div>
 
@@ -128,14 +117,21 @@
 
 <script>
 // --- CONFIGURAÇÃO ---
-const SENHA_MESTRE = "212244"; // 🟢 MUDE SUA SENHA AQUI
+const SENHA_MESTRE = "212244"; 
 const SUBABASE_URL = 'https://qyadsgivfqzmtjgzmxhr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_PcsW3cKl6uRz1x4jSwQulw_QC4T1pMP';
+
+// 🟢 DEFINA SEUS GASTOS FIXOS AQUI (Eles serão importados ao clicar no botão azul)
+const GASTOS_FIXOS = [
+    { descricao: "Aluguel", valor: 1200, categoria: "Despesa" },
+    { descricao: "Internet", valor: 100, categoria: "Despesa" },
+    { descricao: "Academia", valor: 90, categoria: "Despesa" },
+    { descricao: "Salário", valor: 3500, categoria: "Valor a receber" }
+];
 
 const _supabase = supabase.createClient(SUBABASE_URL, SUPABASE_KEY);
 let mesSelecionado = 'atual';
 
-// --- ACESSO ---
 function verificarSenha() {
     if (document.getElementById('senha-input').value === SENHA_MESTRE) {
         document.getElementById('login-screen').style.display = 'none';
@@ -145,12 +141,10 @@ function verificarSenha() {
 }
 function logout() { location.reload(); }
 
-// --- BANCO DE DADOS ---
 window.adicionarAoBanco = async function() {
     const d = document.getElementById('f-desc');
     const v = document.getElementById('f-valor');
-    if (!d.value || !v.value) return alert("Preencha descrição e valor!");
-
+    if (!d.value || !v.value) return;
     const payload = {
         data: document.getElementById('f-data').value,
         descricao: d.value,
@@ -158,15 +152,40 @@ window.adicionarAoBanco = async function() {
         categoria: document.getElementById('f-cat').value,
         mes_referencia: mesSelecionado
     };
+    await _supabase.from('transacoes').insert([payload]);
+    d.value = ''; v.value = ''; carregarDados(mesSelecionado);
+};
 
-    const { error } = await _supabase.from('transacoes').insert([payload]);
-    if (!error) { d.value = ''; v.value = ''; carregarDados(mesSelecionado); }
+// 🟢 FUNÇÃO PARA IMPORTAR GASTOS FIXOS
+window.importarFixos = async function() {
+    if(!confirm("Deseja importar os gastos fixos para este mês?")) return;
+    const hoje = new Date().toISOString().split('T')[0];
+    const lista = GASTOS_FIXOS.map(item => ({
+        ...item,
+        data: hoje,
+        mes_referencia: mesSelecionado
+    }));
+    await _supabase.from('transacoes').insert(lista);
+    carregarDados(mesSelecionado);
+};
+
+// 🟢 FUNÇÃO PARA EDITAR CAMPOS
+window.editarCampo = async function(id, campo, valorAtual) {
+    let novoValor = prompt(`Editar ${campo}:`, valorAtual);
+    if (novoValor === null || novoValor === valorAtual) return;
+    
+    let updateData = {};
+    updateData[campo] = campo === 'valor' ? parseFloat(novoValor) : novoValor;
+    
+    await _supabase.from('transacoes').update(updateData).eq('id', id);
+    carregarDados(mesSelecionado);
 };
 
 window.carregarDados = async function(mes = 'atual') {
     mesSelecionado = mes;
-    let { data, error } = await _supabase.from('transacoes').select('*').eq('mes_referencia', mes).order('data', { ascending: true });
-    if (!error) { renderizar(data || []); atualizarListaMeses(); }
+    let { data } = await _supabase.from('transacoes').select('*').eq('mes_referencia', mes).order('data', { ascending: true });
+    renderizar(data || []);
+    atualizarListaMeses();
 };
 
 window.toggleStatus = async function(id, cat) {
@@ -180,7 +199,7 @@ window.excluir = async function(id) {
 };
 
 window.fecharMes = async function() {
-    const nome = prompt("Nome do mês (Ex: Jan/26):");
+    const nome = prompt("Nome do mês para arquivar (Ex: Jan/26):");
     if(!nome) return;
     await _supabase.from('transacoes').update({ mes_referencia: nome }).eq('mes_referencia', 'atual');
     carregarDados();
@@ -191,6 +210,7 @@ async function atualizarListaMeses() {
     const unicos = [...new Set((data || []).map(m => m.mes_referencia))];
     if (!unicos.includes('atual')) unicos.push('atual');
     const s = document.getElementById('select-meses');
+    const valorAntes = s.value;
     s.innerHTML = '';
     unicos.sort().forEach(m => {
         s.innerHTML += `<option value="${m}" ${m === mesSelecionado ? 'selected' : ''}>${m === 'atual' ? 'Mês Atual' : m}</option>`;
@@ -210,9 +230,9 @@ function renderizar(lista) {
 
         corpo.innerHTML += `
             <tr>
-                <td data-label="Data">${dataBR}</td>
-                <td data-label="Descrição">${t.descricao}</td>
-                <td data-label="Valor">R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                <td data-label="Data" class="editable" onclick="editarCampo(${t.id}, 'data', '${t.data}')">${dataBR}</td>
+                <td data-label="Descrição" class="editable" onclick="editarCampo(${t.id}, 'descricao', '${t.descricao}')">${t.descricao}</td>
+                <td data-label="Valor" class="editable" onclick="editarCampo(${t.id}, 'valor', '${t.valor}')">R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
                 <td data-label="Status"><span class="badge cat-${cl}" onclick="toggleStatus(${t.id}, '${t.categoria}')">${t.categoria}</span></td>
                 <td data-label="Ações">
                     <button class="btn-action" onclick="toggleStatus(${t.id}, '${t.categoria}')">${icon}</button>
@@ -225,10 +245,10 @@ function renderizar(lista) {
     document.getElementById('t-despesa').innerText = `R$ ${s["Despesa"].toLocaleString('pt-BR')}`;
     document.getElementById('t-pago').innerText = `R$ ${s["Pago"].toLocaleString('pt-BR')}`;
     document.getElementById('t-recebido').innerText = `R$ ${s["Recebido"].toLocaleString('pt-BR')}`;
-    const d = s["Valor a receber"] - s["Despesa"];
+    const d = (s["Valor a receber"] + s["Recebido"]) - (s["Despesa"] + s["Pago"]);
     const el = document.getElementById('t-dif');
     el.innerText = `R$ ${d.toLocaleString('pt-BR')}`;
-    el.style.color = d < 0 ? 'red' : '#4ade80';
+    el.style.color = d < 0 ? 'red' : '#16a34a';
 }
 
 document.getElementById('f-data').valueAsDate = new Date();
