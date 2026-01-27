@@ -3,12 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanças Cloud Sync</title>
+    <title>Finanças Cloud Sync - Protegido</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* (O estilo CSS permanece o mesmo do código anterior para manter o design) */
         :root { --primary: #2563eb; --danger: #dc2626; --success: #16a34a; --warning: #ca8a04; --bg: #f1f5f9; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
+        
+        /* Estilo da Tela de Login */
+        #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: #1e293b; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; color: white; }
+        #login-screen input { padding: 12px; border-radius: 8px; border: none; margin-bottom: 10px; width: 250px; text-align: center; font-size: 1.1rem; }
+        
+        /* Esconde o conteúdo principal antes do login */
+        #main-content { display: none; }
+
         .container { max-width: 950px; margin: auto; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
@@ -19,30 +26,37 @@
         .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
         .field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
         input, select, button { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
+        
         .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; color: white; }
+        
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; color: white; cursor: pointer; }
         .cat-valor-a-receber { background: var(--warning); }
         .cat-despesa { background: var(--danger); }
         .cat-pago { background: #94a3b8; }
         .cat-recebido { background: var(--success); }
-        .badge { cursor: pointer; transition: transform 0.1s; }
-.badge:hover { transform: scale(1.1); filter: brightness(1.1); }
-tr:hover { background-color: #f8fafc; }
+        
+        .btn-action { border: none; background: none; cursor: pointer; font-size: 1.1rem; padding: 5px; transition: 0.2s; }
+        .btn-action:hover { transform: scale(1.2); }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div id="login-screen">
+    <h2>🔐 Acesso Restrito</h2>
+    <p>Digite sua senha para gerenciar as finanças:</p>
+    <input type="password" id="senha-input" placeholder="Sua senha...">
+    <button onclick="verificarSenha()" class="btn-add">Entrar</button>
+</div>
+
+<div id="main-content" class="container">
     <div class="header">
         <h2>☁️ Finanças na Nuvem</h2>
-        <div id="aviso-view" style="display:none; background:#fef3c7; color:#92400e; padding:10px; border-radius:8px; margin-bottom:15px; text-align:center; font-weight:bold;">
-    ⚠️ Você está visualizando um MÊS ARQUIVADO.
-</div>
         <div>
             <span id="status-cloud" style="color: #16a34a;">● Sincronizado</span>
             <button onclick="fecharMes()" style="margin-left:15px; cursor:pointer">Encerrar Mês</button>
+            <button onclick="logout()" style="margin-left:5px; color: grey;">Sair</button>
         </div>
     </div>
 
@@ -86,76 +100,82 @@ tr:hover { background-color: #f8fafc; }
 </div>
 
 <script>
-// 1. Configurações (Preencha com seus dados do painel do Supabase)
+// --- CONFIGURAÇÃO ---
+const SENHA_MESTRE = "212244"; // 🟢 ALTERE SUA SENHA AQUI
 const SUBABASE_URL = 'https://qyadsgivfqzmtjgzmxhr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_PcsW3cKl6uRz1x4jSwQulw_QC4T1pMP';
 
-// 2. Inicialização do Cliente
 const _supabase = supabase.createClient(SUBABASE_URL, SUPABASE_KEY);
-
 let mesSelecionado = 'atual';
 
-// 3. Funções Globais (Colocadas explicitamente no escopo window para evitar ReferenceError)
+// --- LOGICA DE ACESSO ---
+function verificarSenha() {
+    const digitada = document.getElementById('senha-input').value;
+    if (digitada === SENHA_MESTRE) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        carregarDados();
+    } else {
+        alert("Senha incorreta!");
+    }
+}
+
+function logout() {
+    location.reload(); // Reinicia a página e volta pro login
+}
+
+// --- LOGICA DO BANCO ---
 window.adicionarAoBanco = async function() {
     const descEl = document.getElementById('f-desc');
     const valorEl = document.getElementById('f-valor');
     const dataEl = document.getElementById('f-data');
     const catEl = document.getElementById('f-cat');
 
-    if (!descEl.value || !valorEl.value) {
-        alert("Preencha descrição e valor!");
-        return;
-    }
+    if (!descEl.value || !valorEl.value) return alert("Preencha tudo!");
 
     const payload = {
         data: dataEl.value,
         descricao: descEl.value,
         valor: parseFloat(valorEl.value),
         categoria: catEl.value,
-        mes_referencia: mesSelecionado === 'atual' ? 'atual' : mesSelecionado
+        mes_referencia: mesSelecionado
     };
 
-    const status = document.getElementById('status-cloud');
-    status.innerText = "○ Salvando...";
-
     const { error } = await _supabase.from('transacoes').insert([payload]);
-    
-    if (error) {
-        alert("Erro ao salvar: " + error.message);
-    } else {
-        descEl.value = '';
-        valorEl.value = '';
+    if (!error) {
+        descEl.value = ''; valorEl.value = '';
         carregarDados(mesSelecionado);
     }
 };
 
 window.carregarDados = async function(mes = 'atual') {
     mesSelecionado = mes;
-    
-    // Mostra aviso se não for o mês atual
-    const aviso = document.getElementById('aviso-view');
-    aviso.style.display = (mes === 'atual') ? 'none' : 'block';
-
-    const status = document.getElementById('status-cloud');
-    status.innerText = "○ Carregando...";
-    
     let { data, error } = await _supabase
         .from('transacoes')
         .select('*')
         .eq('mes_referencia', mes)
         .order('data', { ascending: true });
 
-    if (error) {
-        console.error("Erro na busca:", error);
-    } else {
+    if (!error) {
         renderizar(data || []);
         atualizarListaMeses();
     }
-    status.innerText = "● Sincronizado";
+};
+
+// 🟢 FUNÇÃO PARA ALTERAR STATUS RAPIDAMENTE
+window.toggleStatus = async function(id, categoriaAtual) {
+    let novaCat = categoriaAtual;
+    if (categoriaAtual === "Despesa") novaCat = "Pago";
+    else if (categoriaAtual === "Pago") novaCat = "Despesa";
+    else if (categoriaAtual === "Valor a receber") novaCat = "Recebido";
+    else if (categoriaAtual === "Recebido") novaCat = "Valor a receber";
+
+    await _supabase.from('transacoes').update({ categoria: novaCat }).eq('id', id);
+    carregarDados(mesSelecionado);
 };
 
 window.excluir = async function(id) {
-    if(confirm("Deseja excluir este registro?")) {
+    if(confirm("Excluir registro?")) {
         await _supabase.from('transacoes').delete().eq('id', id);
         carregarDados(mesSelecionado);
     }
@@ -164,41 +184,21 @@ window.excluir = async function(id) {
 window.fecharMes = async function() {
     const nomeMes = prompt("Nome para arquivar (Ex: Jan/26):");
     if(!nomeMes) return;
-
-    const { error } = await _supabase
-        .from('transacoes')
-        .update({ mes_referencia: nomeMes })
-        .eq('mes_referencia', 'atual');
-
-    if(!error) carregarDados();
+    await _supabase.from('transacoes').update({ mes_referencia: nomeMes }).eq('mes_referencia', 'atual');
+    carregarDados();
 };
 
 async function atualizarListaMeses() {
     const { data: todas } = await _supabase.from('transacoes').select('mes_referencia');
     if(!todas) return;
-
     const unicos = [...new Set(todas.map(m => m.mes_referencia))];
     if (!unicos.includes('atual')) unicos.push('atual');
-    
     const select = document.getElementById('select-meses');
     select.innerHTML = '';
     unicos.sort().forEach(m => {
-        const label = m === 'atual' ? 'Mês Atual (Ativo)' : m;
-        select.innerHTML += `<option value="${m}" ${m === mesSelecionado ? 'selected' : ''}>${label}</option>`;
+        select.innerHTML += `<option value="${m}" ${m === mesSelecionado ? 'selected' : ''}>${m === 'atual' ? 'Mês Atual' : m}</option>`;
     });
 }
-
-window.mudarStatus = async function(id, categoriaAtual) {
-    const categorias = ["Valor a receber", "Despesa", "Pago", "Recebido"];
-    const proxima = categorias[(categorias.indexOf(categoriaAtual) + 1) % categorias.length];
-    
-    const { error } = await _supabase
-        .from('transacoes')
-        .update({ categoria: proxima })
-        .eq('id', id);
-    
-    if(!error) carregarDados(mesSelecionado);
-};
 
 function renderizar(lista) {
     const corpo = document.getElementById('tabela-corpo');
@@ -210,42 +210,33 @@ function renderizar(lista) {
         const dataBR = t.data ? t.data.split('-').reverse().join('/') : '---';
         const classe = t.categoria.toLowerCase().replace(/ /g, '-');
         
+        // Ícone de atalho baseado na categoria
+        let iconeAcao = t.categoria === "Despesa" || t.categoria === "Valor a receber" ? "✅" : "🔄";
+
         corpo.innerHTML += `
             <tr>
                 <td>${dataBR}</td>
                 <td>${t.descricao}</td>
                 <td>R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                <td><span class="badge cat-${classe}" onclick="toggleStatus(${t.id}, '${t.categoria}')">${t.categoria}</span></td>
                 <td>
-                    <span class="badge cat-${classe}" title="Clique para mudar status" 
-                          onclick="mudarStatus(${t.id}, '${t.categoria}')">
-                        ${t.categoria}
-                    </span>
-                </td>
-                <td>
-                    <button onclick="excluir(${t.id})" style="color:var(--danger); cursor:pointer; border:none; background:none; font-weight:bold;">
-                        Excluir
-                    </button>
+                    <button class="btn-action" title="Alterar Status" onclick="toggleStatus(${t.id}, '${t.categoria}')">${iconeAcao}</button>
+                    <button class="btn-action" title="Excluir" onclick="excluir(${t.id})">🗑️</button>
                 </td>
             </tr>`;
     });
 
-    // Atualização dos cards do dashboard (mantém igual ao seu)
-    document.getElementById('t-receber').innerText = `R$ ${somas["Valor a receber"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
-    document.getElementById('t-despesa').innerText = `R$ ${somas["Despesa"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
-    document.getElementById('t-pago').innerText = `R$ ${somas["Pago"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
-    document.getElementById('t-recebido').innerText = `R$ ${somas["Recebido"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
-    
+    document.getElementById('t-receber').innerText = `R$ ${somas["Valor a receber"].toLocaleString('pt-BR')}`;
+    document.getElementById('t-despesa').innerText = `R$ ${somas["Despesa"].toLocaleString('pt-BR')}`;
+    document.getElementById('t-pago').innerText = `R$ ${somas["Pago"].toLocaleString('pt-BR')}`;
+    document.getElementById('t-recebido').innerText = `R$ ${somas["Recebido"].toLocaleString('pt-BR')}`;
     const dif = somas["Valor a receber"] - somas["Despesa"];
     const elDif = document.getElementById('t-dif');
-    elDif.innerText = `R$ ${dif.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
-    elDif.style.color = dif < 0 ? 'var(--danger)' : 'var(--success)';
+    elDif.innerText = `R$ ${dif.toLocaleString('pt-BR')}`;
+    elDif.style.color = dif < 0 ? 'red' : 'green';
 }
 
-// Inicialização padrão
 document.getElementById('f-data').valueAsDate = new Date();
-carregarDados();
-  
 </script>
 </body>
 </html>
-
