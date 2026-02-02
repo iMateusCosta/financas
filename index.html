@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanças & Investimentos Cloud</title>
+    <title>Finanças Cloud - Sistema Completo</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { 
@@ -12,82 +12,70 @@
         }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; margin: 0; line-height: 1.5; }
         
-        /* Telas */
         #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: #1e293b; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; color: white; }
         #main-content { display: none; max-width: 1100px; margin: auto; }
 
-        /* Header */
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .header h2 { margin: 0; font-size: 1.5rem; }
-
-        /* Dashboard */
         .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid #cbd5e1; }
-        .card h3 { font-size: 0.7rem; margin: 0 0 8px 0; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
+        .card h3 { font-size: 0.7rem; margin: 0 0 8px 0; text-transform: uppercase; color: #64748b; }
         .card p { font-size: 1.2rem; font-weight: bold; margin: 0; }
         .card.invest { border-top-color: var(--invest); color: var(--invest); }
         .card.projecao { background: #1e293b; color: white; border-top-color: var(--primary); }
 
-        /* Painel Ativos */
-        .invest-split { background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 20px; margin-bottom: 25px; }
-        .invest-split h4 { margin: 0 0 15px 0; color: var(--invest); font-size: 1rem; }
+        .invest-split { background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 20px; margin-bottom: 25px; display: none; }
         .split-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
         .split-item { background: white; padding: 10px; border-radius: 8px; border-left: 4px solid var(--invest); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .split-item span { display: block; font-size: 0.7rem; color: #64748b; margin-bottom: 4px; }
 
-        /* Formulário e Controles */
         .controls { background: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: flex-end; }
         .field { display: flex; flex-direction: column; gap: 5px; }
         .field label { font-size: 0.85rem; font-weight: 600; color: #475569; }
         
         input, select, button { padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; outline: none; }
-        input:focus { border-color: var(--primary); ring: 2px solid #bfdbfe; }
-        .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-add:hover { background: #1d4ed8; }
+        .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
 
-        /* Sub-controles (Saldo e Mês) */
         .sub-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #f1f5f9; }
-        .saldo-box { display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 10px 15px; border-radius: 8px; border: 1px dashed #cbd5e1; }
+        .saldo-box { display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 8px 15px; border-radius: 8px; border: 1px dashed #cbd5e1; }
 
-        /* Tabela */
         .table-container { background: white; border-radius: 12px; overflow-x: auto; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         table { width: 100%; border-collapse: collapse; min-width: 600px; }
         th { background: #f8fafc; padding: 15px; text-align: left; color: #64748b; font-size: 0.85rem; cursor: pointer; border-bottom: 2px solid #e2e8f0; }
-        th:hover { background: #f1f5f9; }
-        th.sort-active { color: var(--primary); }
+        th.sort-active { color: var(--primary); font-weight: bold; }
         td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; }
         
-        /* Badges */
-        .badge { padding: 5px 10px; border-radius: 15px; font-size: 0.75rem; font-weight: bold; color: white; text-align: center; min-width: 80px; display: inline-block; }
-        .cat-investimento { background: var(--invest); }
-        .cat-despesa { background: var(--danger); }
-        .cat-valor-a-receber { background: var(--warning); }
-        .cat-receita { background: var(--success); }
-        .cat-pago { background: #94a3b8; }
-        .cat-recebido { background: var(--success); }
+        .badge { padding: 5px 10px; border-radius: 15px; font-size: 0.72rem; font-weight: bold; color: white; text-align: center; display: inline-block; }
+        .cat-investimento { background: var(--invest) !important; }
+        .cat-despesa { background: var(--danger) !important; }
+        .cat-valor-a-receber { background: var(--warning) !important; }
+        .cat-pago { background: #94a3b8 !important; }
+        .cat-recebido { background: var(--success) !important; }
 
-        .btn-action { border: none; background: #f1f5f9; cursor: pointer; padding: 8px; border-radius: 6px; color: #64748b; }
-        .btn-action:hover { background: #e2e8f0; color: var(--danger); }
+        .editable:hover { background: #fff7ed; cursor: pointer; }
+        .btn-action { border: none; background: #f1f5f9; cursor: pointer; padding: 8px; border-radius: 6px; }
+        .btn-fixo { background: #e0f2fe; color: #0369a1; border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; border-radius: 8px; font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
-    <div style="background: white; padding: 40px; border-radius: 15px; color: #1e293b; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center;">
-        <h2 style="margin-bottom: 20px;">🔐 Acesso Restrito</h2>
-        <input type="password" id="senha-input" placeholder="Sua senha mestre" style="margin-bottom: 15px; text-align: center;">
-        <button onclick="verificarSenha()" class="btn-add" style="width: 100%;">Entrar no Dashboard</button>
+    <div style="background: white; padding: 40px; border-radius: 15px; color: #1e293b; text-align: center;">
+        <h2>🔐 Acesso Restrito</h2>
+        <input type="password" id="senha-input" placeholder="Sua senha mestre">
+        <button onclick="verificarSenha()" class="btn-add" style="width: 100%; margin-top: 10px;">Entrar</button>
     </div>
 </div>
 
 <div id="main-content">
     <div class="header">
         <h2>☁️ Finanças Cloud</h2>
-        <button onclick="logout()" style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer;">Sair</button>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="importarFixos()" class="btn-fixo">📌 Despesas Fixas</button>
+            <button onclick="logout()" style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer;">Sair</button>
+        </div>
     </div>
 
-    <div class="dashboard" id="dashboard">
+    <div class="dashboard">
         <div class="card" style="border-top-color: var(--info)"><h3>Saldo Banco</h3><p id="t-inicial">R$ 0,00</p></div>
         <div class="card"><h3>A Receber</h3><p id="t-receber">R$ 0,00</p></div>
         <div class="card"><h3>Despesa</h3><p id="t-despesa">R$ 0,00</p></div>
@@ -118,12 +106,18 @@
 
         <div class="sub-controls">
             <div class="saldo-box">
-                <label style="font-size: 0.8rem; font-weight: bold; color: #64748b;">💰 Saldo atual no banco:</label>
-                <input type="number" id="saldo-inicial-input" step="0.01" style="width: 130px; border: 1px solid #cbd5e1; padding: 5px;" onchange="salvarSaldoNoBanco()">
+                <label style="font-size: 0.8rem; font-weight: bold; color: #64748b;">💰 Saldo Banco:</label>
+                <input type="number" id="saldo-inicial-input" step="0.01" style="width: 110px; border: 1px solid #cbd5e1; padding: 5px;" onchange="salvarSaldoNoBanco()">
             </div>
-            <div class="field" style="flex-direction: row; align-items: center; gap: 10px;">
-                <label>Mês:</label>
-                <select id="select-meses" onchange="carregarDados(this.value)" style="width: auto;"></select>
+            
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <div class="field" style="flex-direction: row; align-items: center; gap: 8px;">
+                    <label style="font-size: 0.85rem; font-weight: 600;">Exibir:</label>
+                    <select id="select-meses" onchange="carregarDados(this.value)" style="width: auto; padding: 5px;"></select>
+                </div>
+                <button onclick="fecharMes()" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: bold; color: #475569;">
+                    🔒 Encerrar Mês
+                </button>
             </div>
         </div>
     </div>
@@ -154,7 +148,6 @@ let mesSelecionado = 'atual';
 let dadosGlobais = [];
 let ordemAtual = { coluna: 'data', ascendente: true };
 
-// Verificação Inicial
 function verificarSenha() {
     if (document.getElementById('senha-input').value === SENHA_MESTRE) {
         document.getElementById('login-screen').style.display = 'none';
@@ -166,7 +159,10 @@ function verificarSenha() {
 
 async function carregarSaldoDoBanco() {
     let { data } = await _supabase.from('configuracoes').select('valor').eq('chave', 'saldo_inicial').single();
-    if (data) document.getElementById('saldo-inicial-input').value = data.valor;
+    if (data) {
+        document.getElementById('saldo-inicial-input').value = data.valor;
+        renderizar(dadosGlobais);
+    }
 }
 
 async function salvarSaldoNoBanco() {
@@ -174,6 +170,27 @@ async function salvarSaldoNoBanco() {
     await _supabase.from('configuracoes').update({ valor: v }).eq('chave', 'saldo_inicial');
     renderizar(dadosGlobais);
 }
+
+// FUNÇÃO DESPESAS FIXAS - PERSONALIZE AQUI
+window.importarFixos = async function() {
+    if (!confirm("Deseja importar as despesas fixas para o mês atual?")) return;
+    const hoje = new Date().toISOString().split('T')[0];
+    const itens = [
+        { data: hoje, descricao: "Financiamento", valor: 1170, categoria: "Despesa", mes_referencia: "atual" },
+        { data: hoje, descricao: "Condominio", valor: 455, categoria: "Despesa", mes_referencia: "atual" },
+        { data: hoje, descricao: "INTER CC", valor: 2000, categoria: "Despesa", mes_referencia: "atual" },
+        { data: hoje, descricao: "ITAU CC", valor: 500, categoria: "Despesa", mes_referencia: "atual" },
+        { data: hoje, descricao: "NUBANK CC", valor: 200, categoria: "Despesa", mes_referencia: "atual" },
+        { data: hoje, descricao: "RENNER", valor: 80, categoria: "Despesa", mes_referencia: "atual" },
+        { data: hoje, descricao: "NETFLIX", valor: 30, categoria: "Despesa", mes_referencia: "atual" },
+        { data: hoje, descricao: "SPOTIFY", valor: 30, categoria: "Despesa", mes_referencia: "atual" },
+        { data: hoje, descricao: "Viagem do Felipe", valor: 125, categoria: "Despesa", mes_referencia: "atual" },
+        { data: hoje, descricao: "SALÁRIO 15", valor: 1800, categoria: "Valor a receber", mes_referencia: "atual" },
+        { data: hoje, descricao: "SALÁRIO 30", valor: 2060, categoria: "Valor a receber", mes_referencia: "atual" }
+    ];
+    await _supabase.from('transacoes').insert(itens);
+    carregarDados('atual');
+};
 
 window.carregarDados = async function(mes = 'atual') {
     mesSelecionado = mes;
@@ -194,7 +211,6 @@ function ordenarDados(coluna, manterOrdem = false) {
         return ordemAtual.ascendente ? valA.toString().localeCompare(valB.toString()) : valB.toString().localeCompare(valA.toString());
     });
     renderizar(dadosGlobais);
-    
     document.querySelectorAll('th').forEach(th => th.classList.remove('sort-active'));
     const target = document.getElementById(`th-${ordemAtual.coluna}`);
     if(target) target.classList.add('sort-active');
@@ -209,15 +225,13 @@ function renderizar(lista) {
     lista.forEach(t => {
         s[t.categoria] += t.valor;
         if(t.categoria === "Investimento") detalheInvest[t.descricao] = (detalheInvest[t.descricao] || 0) + t.valor;
-        
         const classeCor = t.categoria.toLowerCase().replace(/ /g, '-');
-
         corpo.innerHTML += `
             <tr>
                 <td class="editable" onclick="editarCampo(${t.id},'data','${t.data}')">${t.data.split('-').reverse().join('/')}</td>
                 <td class="editable" onclick="editarCampo(${t.id},'descricao','${t.descricao}')">${t.descricao}</td>
                 <td class="editable" onclick="editarCampo(${t.id},'valor','${t.valor}')">R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
-                <td><span class="badge cat-${classeCor}">${t.categoria}</span></td>
+                <td><span class="badge cat-${classeCor}" onclick="toggleStatus(${t.id}, '${t.categoria}')" style="cursor:pointer">${t.categoria}</span></td>
                 <td><button class="btn-action" onclick="excluir(${t.id})">🗑️</button></td>
             </tr>`;
     });
@@ -230,7 +244,6 @@ function renderizar(lista) {
 
     const saldoBanco = parseFloat(document.getElementById('saldo-inicial-input').value) || 0;
     const projecao = (s["Valor a receber"] + s["Recebido"]) - (s["Despesa"] + s["Pago"]);
-    
     document.getElementById('t-inicial').innerText = `R$ ${saldoBanco.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
     document.getElementById('t-receber').innerText = `R$ ${s["Valor a receber"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
     document.getElementById('t-despesa').innerText = `R$ ${s["Despesa"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
@@ -246,6 +259,12 @@ window.editarCampo = async function(id, campo, valorAtual) {
     carregarDados(mesSelecionado);
 };
 
+window.toggleStatus = async function(id, cat) {
+    let nova = cat === "Despesa" ? "Pago" : cat === "Pago" ? "Despesa" : cat === "Valor a receber" ? "Recebido" : cat === "Recebido" ? "Valor a receber" : "Investimento";
+    await _supabase.from('transacoes').update({ categoria: nova }).eq('id', id);
+    carregarDados(mesSelecionado);
+};
+
 window.adicionarAoBanco = async function() {
     const d = document.getElementById('f-desc'), v = document.getElementById('f-valor');
     if (!d.value || !v.value) return;
@@ -258,11 +277,15 @@ window.adicionarAoBanco = async function() {
     d.value = ''; v.value = ''; carregarDados(mesSelecionado);
 };
 
+window.fecharMes = async function() {
+    const nomeMes = prompt("Como deseja arquivar este mês? (Ex: Jan/26)");
+    if (!nomeMes || mesSelecionado !== 'atual') return;
+    await _supabase.from('transacoes').update({ mes_referencia: nomeMes }).eq('mes_referencia', 'atual');
+    carregarDados('atual');
+};
+
 window.excluir = async function(id) {
-    if(confirm("Deseja realmente excluir este item?")) { 
-        await _supabase.from('transacoes').delete().eq('id', id); 
-        carregarDados(mesSelecionado); 
-    }
+    if(confirm("Excluir item?")) { await _supabase.from('transacoes').delete().eq('id', id); carregarDados(mesSelecionado); }
 };
 
 async function atualizarListaMeses() {
