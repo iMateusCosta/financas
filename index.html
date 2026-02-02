@@ -12,6 +12,7 @@
             --success: #16a34a; 
             --warning: #ca8a04; 
             --invest: #8b5cf6;
+            --info: #0ea5e9;
             --bg: #f1f5f9; 
         }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 10px; color: #1e293b; margin: 0; }
@@ -20,27 +21,31 @@
         #login-screen input { padding: 15px; border-radius: 8px; border: none; margin-bottom: 10px; width: 100%; max-width: 300px; font-size: 1.1rem; text-align: center; }
         
         #main-content { display: none; }
-        .container { max-width: 1000px; margin: auto; padding-bottom: 40px; }
+        .container { max-width: 1100px; margin: auto; padding-bottom: 40px; }
         
         .header { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding-top: 10px; }
         @media(min-width: 600px) { .header { flex-direction: row; justify-content: space-between; align-items: center; } }
 
         .dashboard { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
         @media(min-width: 480px) { .dashboard { grid-template-columns: repeat(2, 1fr); } }
-        @media(min-width: 900px) { .dashboard { grid-template-columns: repeat(6, 1fr); } }
+        @media(min-width: 900px) { .dashboard { grid-template-columns: repeat(7, 1fr); } }
         
-        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 4px solid #cbd5e1; }
-        .card h3 { font-size: 0.7rem; margin: 0; text-transform: uppercase; color: #64748b; }
-        .card p { font-size: 1.1rem; font-weight: bold; margin: 5px 0 0; }
+        .card { background: white; padding: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 4px solid #cbd5e1; }
+        .card h3 { font-size: 0.65rem; margin: 0; text-transform: uppercase; color: #64748b; }
+        .card p { font-size: 1rem; font-weight: bold; margin: 5px 0 0; }
         .card.invest { border-top-color: var(--invest); color: var(--invest); }
+        .card.conta { border-top-color: var(--info); color: var(--info); }
         .projecao { background: #1e293b; color: white; border-top-color: var(--primary); }
 
         .controls { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .form-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .form-row { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
         @media(min-width: 768px) { .form-row { grid-template-columns: 1fr 1.5fr 1fr 1.2fr auto; align-items: flex-end; } }
         
         input, select, button { padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; width: 100%; box-sizing: border-box; }
         .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+
+        .saldo-atual-container { display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px dashed #cbd5e1; }
+        .saldo-atual-container input { width: 150px; padding: 8px; font-weight: bold; }
 
         @media (max-width: 767px) {
             table, thead, tbody, th, td, tr { display: block; }
@@ -85,12 +90,13 @@
     </div>
 
     <div class="dashboard">
+        <div class="card conta"><h3>Saldo em Conta</h3><p id="t-inicial">R$ 0,00</p></div>
         <div class="card"><h3>A Receber</h3><p id="t-receber">R$ 0,00</p></div>
         <div class="card"><h3>Despesa</h3><p id="t-despesa">R$ 0,00</p></div>
         <div class="card"><h3>Pago</h3><p id="t-pago">R$ 0,00</p></div>
         <div class="card"><h3>Recebido</h3><p id="t-recebido">R$ 0,00</p></div>
         <div class="card invest"><h3>Investido</h3><p id="t-invest">R$ 0,00</p></div>
-        <div class="card projecao"><h3>Saldo Final</h3><p id="t-dif">R$ 0,00</p></div>
+        <div class="card projecao"><h3>Saldo Real</h3><p id="t-dif">R$ 0,00</p></div>
     </div>
 
     <div class="controls">
@@ -109,7 +115,13 @@
             </div>
             <button class="btn-add" onclick="adicionarAoBanco()">Lançar</button>
         </div>
-        <div style="margin-top: 15px; display:flex; align-items:center; justify-content: space-between;">
+        
+        <div style="margin-top: 15px; display:flex; align-items:center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+            <div class="saldo-atual-container">
+                <label style="font-size: 0.8rem; color: #64748b;">💰 <strong>Saldo Atual na Conta:</strong></label>
+                <input type="number" id="saldo-inicial-input" value="0" step="0.01" oninput="atualizarTotaisNoInput()">
+            </div>
+            
             <div>
                 <label style="font-size: 0.8rem;"><strong>Mês Exibido:</strong></label>
                 <select id="select-meses" onchange="carregarDados(this.value)" style="padding: 5px; width: auto; margin-left: 10px;"></select>
@@ -126,12 +138,11 @@
 </div>
 
 <script>
-// --- CONFIGURAÇÃO ---
 const SENHA_MESTRE = "212244"; 
 const SUBABASE_URL = 'https://qyadsgivfqzmtjgzmxhr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_PcsW3cKl6uRz1x4jSwQulw_QC4T1pMP';
 
-// 🟢 LISTA DE GASTOS FIXOS
+// Gastos fixos omitidos para brevidade (mantenha sua lista original aqui)
 const GASTOS_FIXOS = [
     { dia: 5,  descricao: "Banco Inter CC", valor: 1600.00, categoria: "Despesa" },
     { dia: 10, descricao: "Banco Itau CC", valor: 500.00, categoria: "Despesa" },
@@ -143,12 +154,12 @@ const GASTOS_FIXOS = [
     { dia: 8,  descricao: "Spotify", valor: 23.90, categoria: "Despesa" },
     { dia: 15, descricao: "Salário 15", valor: 1600.00, categoria: "Valor a receber" },
     { dia: 30, descricao: "Salário 30", valor: 1900.00, categoria: "Valor a receber" },
-    { dia: 1,  descricao: "CDB", valor: 700.00, categoria: "Investimento" },
-    { dia: 1,  descricao: "Selic", valor: 181.56, categoria: "Investimento" }
+    { dia: 1,  descricao: "Reserva de Emergência", valor: 200.00, categoria: "Investimento" }
 ];
 
 const _supabase = supabase.createClient(SUBABASE_URL, SUPABASE_KEY);
 let mesSelecionado = 'atual';
+let dadosGlobais = [];
 
 function verificarSenha() {
     if (document.getElementById('senha-input').value === SENHA_MESTRE) {
@@ -200,7 +211,8 @@ window.editarCampo = async function(id, campo, valorAtual) {
 window.carregarDados = async function(mes = 'atual') {
     mesSelecionado = mes;
     let { data } = await _supabase.from('transacoes').select('*').eq('mes_referencia', mes).order('data', { ascending: true });
-    renderizar(data || []);
+    dadosGlobais = data || [];
+    renderizar(dadosGlobais);
     atualizarListaMeses();
 };
 
@@ -232,6 +244,10 @@ async function atualizarListaMeses() {
     });
 }
 
+function atualizarTotaisNoInput() {
+    renderizar(dadosGlobais);
+}
+
 function renderizar(lista) {
     const corpo = document.getElementById('tabela-corpo');
     corpo.innerHTML = '';
@@ -257,22 +273,27 @@ function renderizar(lista) {
             </tr>`;
     });
 
+    const saldoAtualNaConta = parseFloat(document.getElementById('saldo-inicial-input').value) || 0;
+    document.getElementById('t-inicial').innerText = `R$ ${saldoAtualNaConta.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+    
     document.getElementById('t-receber').innerText = `R$ ${s["Valor a receber"].toLocaleString('pt-BR')}`;
     document.getElementById('t-despesa').innerText = `R$ ${s["Despesa"].toLocaleString('pt-BR')}`;
     document.getElementById('t-pago').innerText = `R$ ${s["Pago"].toLocaleString('pt-BR')}`;
     document.getElementById('t-recebido').innerText = `R$ ${s["Recebido"].toLocaleString('pt-BR')}`;
     document.getElementById('t-invest').innerText = `R$ ${s["Investimento"].toLocaleString('pt-BR')}`;
     
-    // NOVO CÁLCULO: Saldo Final = (Ganhos) - (Gastos). Investimento NÃO é subtraído.
-    const saldo = (s["Valor a receber"] + s["Recebido"]) - (s["Despesa"] + s["Pago"]);
+    // Projeção do Mês (sem tirar investimento conforme pedido)
+    const saldoDoMes = (s["Valor a receber"] + s["Recebido"]) - (s["Despesa"] + s["Pago"]);
+    
+    // Saldo Real = Saldo em Conta + Projeção do Mês
+    const saldoTotalReal = saldoAtualNaConta + saldoDoMes;
     
     const el = document.getElementById('t-dif');
-    el.innerText = `R$ ${saldo.toLocaleString('pt-BR')}`;
-    el.style.color = saldo < 0 ? '#fb7185' : '#4ade80';
+    el.innerText = `R$ ${saldoTotalReal.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+    el.style.color = saldoTotalReal < 0 ? '#fb7185' : '#4ade80';
 }
 
 document.getElementById('f-data').valueAsDate = new Date();
 </script>
 </body>
 </html>
-
