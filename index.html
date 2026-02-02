@@ -10,64 +10,85 @@
             --primary: #2563eb; --danger: #dc2626; --success: #16a34a; 
             --warning: #ca8a04; --invest: #8b5cf6; --info: #0ea5e9; --bg: #f1f5f9; 
         }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 10px; color: #1e293b; margin: 0; }
-        #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: #1e293b; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; color: white; padding: 20px; text-align: center; }
-        #login-screen input { padding: 15px; border-radius: 8px; border: none; margin-bottom: 10px; width: 100%; max-width: 300px; font-size: 1.1rem; text-align: center; }
-        #main-content { display: none; }
-        .container { max-width: 1100px; margin: auto; padding-bottom: 40px; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; margin: 0; line-height: 1.5; }
         
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .card { background: white; padding: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 4px solid #cbd5e1; }
-        .card h3 { font-size: 0.65rem; margin: 0; text-transform: uppercase; color: #64748b; }
-        .card p { font-size: 1rem; font-weight: bold; margin: 5px 0 0; }
+        /* Telas */
+        #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: #1e293b; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; color: white; }
+        #main-content { display: none; max-width: 1100px; margin: auto; }
+
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header h2 { margin: 0; font-size: 1.5rem; }
+
+        /* Dashboard */
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid #cbd5e1; }
+        .card h3 { font-size: 0.7rem; margin: 0 0 8px 0; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
+        .card p { font-size: 1.2rem; font-weight: bold; margin: 0; }
         .card.invest { border-top-color: var(--invest); color: var(--invest); }
-        .projecao { background: #1e293b; color: white; border-top-color: var(--primary); }
+        .card.projecao { background: #1e293b; color: white; border-top-color: var(--primary); }
 
-        .invest-split { background: #fdf2ff; border: 1px solid #e9d5ff; border-radius: 10px; padding: 15px; margin-bottom: 20px; display: none; }
-        .invest-split h4 { margin: 0 0 10px 0; color: var(--invest); font-size: 0.9rem; }
-        .split-grid { display: flex; flex-wrap: wrap; gap: 15px; }
-        .split-item { background: white; padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--invest); }
+        /* Painel Ativos */
+        .invest-split { background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 20px; margin-bottom: 25px; }
+        .invest-split h4 { margin: 0 0 15px 0; color: var(--invest); font-size: 1rem; }
+        .split-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+        .split-item { background: white; padding: 10px; border-radius: 8px; border-left: 4px solid var(--invest); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .split-item span { display: block; font-size: 0.7rem; color: #64748b; margin-bottom: 4px; }
 
-        .controls { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .form-row { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
-        @media(min-width: 768px) { .form-row { grid-template-columns: 1fr 1.5fr 1fr 1.2fr auto; align-items: flex-end; } }
-        input, select, button { padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; width: 100%; }
-        .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+        /* Formulário e Controles */
+        .controls { background: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: flex-end; }
+        .field { display: flex; flex-direction: column; gap: 5px; }
+        .field label { font-size: 0.85rem; font-weight: 600; color: #475569; }
         
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; margin-top: 10px; }
-        th { padding: 12px 15px; text-align: left; background: #f8fafc; color: #64748b; font-size: 0.85rem; cursor: pointer; user-select: none; }
-        th.sort-active { color: var(--primary); font-weight: bold; }
-        td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; }
-        
-        /* CORES DAS CATEGORIAS */
-        .badge { padding: 6px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; color: white; display: inline-block; }
-        .cat-investimento { background: var(--invest) !important; }
-        .cat-despesa { background: var(--danger) !important; }
-        .cat-valor-a-receber { background: var(--warning) !important; }
-        .cat-receita { background: var(--success) !important; } /* Caso use o termo Receita */
-        .cat-pago { background: #94a3b8 !important; }
-        .cat-recebido { background: var(--success) !important; }
+        input, select, button { padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; outline: none; }
+        input:focus { border-color: var(--primary); ring: 2px solid #bfdbfe; }
+        .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-add:hover { background: #1d4ed8; }
 
-        .btn-action { border: none; background: #f1f5f9; cursor: pointer; padding: 8px; border-radius: 6px; }
-        .editable:hover { background: #fff7ed; cursor: pointer; }
+        /* Sub-controles (Saldo e Mês) */
+        .sub-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #f1f5f9; }
+        .saldo-box { display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 10px 15px; border-radius: 8px; border: 1px dashed #cbd5e1; }
+
+        /* Tabela */
+        .table-container { background: white; border-radius: 12px; overflow-x: auto; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th { background: #f8fafc; padding: 15px; text-align: left; color: #64748b; font-size: 0.85rem; cursor: pointer; border-bottom: 2px solid #e2e8f0; }
+        th:hover { background: #f1f5f9; }
+        th.sort-active { color: var(--primary); }
+        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; }
+        
+        /* Badges */
+        .badge { padding: 5px 10px; border-radius: 15px; font-size: 0.75rem; font-weight: bold; color: white; text-align: center; min-width: 80px; display: inline-block; }
+        .cat-investimento { background: var(--invest); }
+        .cat-despesa { background: var(--danger); }
+        .cat-valor-a-receber { background: var(--warning); }
+        .cat-receita { background: var(--success); }
+        .cat-pago { background: #94a3b8; }
+        .cat-recebido { background: var(--success); }
+
+        .btn-action { border: none; background: #f1f5f9; cursor: pointer; padding: 8px; border-radius: 6px; color: #64748b; }
+        .btn-action:hover { background: #e2e8f0; color: var(--danger); }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
-    <h2>🔐 Acesso Restrito</h2>
-    <input type="password" id="senha-input" placeholder="Digite a senha...">
-    <button onclick="verificarSenha()" class="btn-add" style="max-width:300px">Entrar</button>
+    <div style="background: white; padding: 40px; border-radius: 15px; color: #1e293b; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center;">
+        <h2 style="margin-bottom: 20px;">🔐 Acesso Restrito</h2>
+        <input type="password" id="senha-input" placeholder="Sua senha mestre" style="margin-bottom: 15px; text-align: center;">
+        <button onclick="verificarSenha()" class="btn-add" style="width: 100%;">Entrar no Dashboard</button>
+    </div>
 </div>
 
-<div id="main-content" class="container">
-    <div class="header" style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2>☁️ Finanças & Investimentos</h2>
-        <button onclick="logout()" style="width: auto; background: none; border: none; color: #64748b; cursor:pointer;">Sair</button>
+<div id="main-content">
+    <div class="header">
+        <h2>☁️ Finanças Cloud</h2>
+        <button onclick="logout()" style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer;">Sair</button>
     </div>
 
-    <div class="dashboard">
-        <div class="card" style="border-top-color: var(--info)"><h3>Saldo em Conta</h3><p id="t-inicial">R$ 0,00</p></div>
+    <div class="dashboard" id="dashboard">
+        <div class="card" style="border-top-color: var(--info)"><h3>Saldo Banco</h3><p id="t-inicial">R$ 0,00</p></div>
         <div class="card"><h3>A Receber</h3><p id="t-receber">R$ 0,00</p></div>
         <div class="card"><h3>Despesa</h3><p id="t-despesa">R$ 0,00</p></div>
         <div class="card invest"><h3>Investido</h3><p id="t-invest">R$ 0,00</p></div>
@@ -82,9 +103,10 @@
     <div class="controls">
         <div class="form-row">
             <div class="field"><label>Data</label><input type="date" id="f-data"></div>
-            <div class="field"><label>Descrição</label><input type="text" id="f-desc"></div>
+            <div class="field"><label>Descrição</label><input type="text" id="f-desc" placeholder="Ex: Aluguel, CDB..."></div>
             <div class="field"><label>Valor R$</label><input type="number" id="f-valor" step="0.01"></div>
-            <div class="field"><label>Categoria</label>
+            <div class="field">
+                <label>Categoria</label>
                 <select id="f-cat">
                     <option value="Valor a receber">Receita</option>
                     <option value="Despesa">Despesa</option>
@@ -93,27 +115,33 @@
             </div>
             <button class="btn-add" onclick="adicionarAoBanco()">Lançar</button>
         </div>
-        <div style="display:flex; align-items:center; gap:15px; margin-top:10px;">
-            <div style="background:#f8fafc; padding:8px; border-radius:8px; border:1px solid #e2e8f0">
-                <label style="font-size:0.75rem; color:#64748b">Saldo Banco:</label>
-                <input type="number" id="saldo-inicial-input" style="width:120px; border:none; background:transparent; font-weight:bold" onchange="salvarSaldoNoBanco()">
+
+        <div class="sub-controls">
+            <div class="saldo-box">
+                <label style="font-size: 0.8rem; font-weight: bold; color: #64748b;">💰 Saldo atual no banco:</label>
+                <input type="number" id="saldo-inicial-input" step="0.01" style="width: 130px; border: 1px solid #cbd5e1; padding: 5px;" onchange="salvarSaldoNoBanco()">
             </div>
-            <select id="select-meses" onchange="carregarDados(this.value)" style="width:auto; padding:8px"></select>
+            <div class="field" style="flex-direction: row; align-items: center; gap: 10px;">
+                <label>Mês:</label>
+                <select id="select-meses" onchange="carregarDados(this.value)" style="width: auto;"></select>
+            </div>
         </div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th id="th-data" onclick="ordenarDados('data')">Data ↕</th>
-                <th id="th-descricao" onclick="ordenarDados('descricao')">Descrição ↕</th>
-                <th id="th-valor" onclick="ordenarDados('valor')">Valor ↕</th>
-                <th>Status</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody id="tabela-corpo"></tbody>
-    </table>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th id="th-data" onclick="ordenarDados('data')">Data ↕</th>
+                    <th id="th-descricao" onclick="ordenarDados('descricao')">Descrição ↕</th>
+                    <th id="th-valor" onclick="ordenarDados('valor')">Valor ↕</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-corpo"></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
@@ -126,6 +154,7 @@ let mesSelecionado = 'atual';
 let dadosGlobais = [];
 let ordemAtual = { coluna: 'data', ascendente: true };
 
+// Verificação Inicial
 function verificarSenha() {
     if (document.getElementById('senha-input').value === SENHA_MESTRE) {
         document.getElementById('login-screen').style.display = 'none';
@@ -166,9 +195,9 @@ function ordenarDados(coluna, manterOrdem = false) {
     });
     renderizar(dadosGlobais);
     
-    // Atualiza indicadores de ordenação
     document.querySelectorAll('th').forEach(th => th.classList.remove('sort-active'));
-    document.getElementById(`th-${ordemAtual.coluna}`).classList.add('sort-active');
+    const target = document.getElementById(`th-${ordemAtual.coluna}`);
+    if(target) target.classList.add('sort-active');
 }
 
 function renderizar(lista) {
@@ -181,7 +210,6 @@ function renderizar(lista) {
         s[t.categoria] += t.valor;
         if(t.categoria === "Investimento") detalheInvest[t.descricao] = (detalheInvest[t.descricao] || 0) + t.valor;
         
-        // CORREÇÃO DAS CORES: Normaliza o nome da categoria para a classe CSS
         const classeCor = t.categoria.toLowerCase().replace(/ /g, '-');
 
         corpo.innerHTML += `
@@ -194,11 +222,10 @@ function renderizar(lista) {
             </tr>`;
     });
 
-    // Painel de Investimentos
     const keys = Object.keys(detalheInvest);
     document.getElementById('painel-investimentos').style.display = keys.length ? 'block' : 'none';
     keys.forEach(k => {
-        grid.innerHTML += `<div class="split-item"><span>${k}</span><b>R$ ${detalheInvest[k].toLocaleString('pt-BR')}</b></div>`;
+        grid.innerHTML += `<div class="split-item"><span>${k}</span><b>R$ ${detalheInvest[k].toLocaleString('pt-BR', {minimumFractionDigits:2})}</b></div>`;
     });
 
     const saldoBanco = parseFloat(document.getElementById('saldo-inicial-input').value) || 0;
@@ -232,12 +259,16 @@ window.adicionarAoBanco = async function() {
 };
 
 window.excluir = async function(id) {
-    if(confirm("Excluir?")) { await _supabase.from('transacoes').delete().eq('id', id); carregarDados(mesSelecionado); }
+    if(confirm("Deseja realmente excluir este item?")) { 
+        await _supabase.from('transacoes').delete().eq('id', id); 
+        carregarDados(mesSelecionado); 
+    }
 };
 
 async function atualizarListaMeses() {
     const { data } = await _supabase.from('transacoes').select('mes_referencia');
     const unicos = [...new Set((data || []).map(m => m.mes_referencia))];
+    if (!unicos.includes('atual')) unicos.push('atual');
     const s = document.getElementById('select-meses');
     s.innerHTML = unicos.map(m => `<option value="${m}" ${m===mesSelecionado?'selected':''}>${m==='atual'?'Mês Atual':m}</option>`).join('');
 }
