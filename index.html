@@ -35,15 +35,21 @@
         .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
         
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; margin-top: 10px; }
-        th { padding: 12px 15px; text-align: left; background: #f8fafc; color: #64748b; font-size: 0.85rem; cursor: pointer; user-select: none; position: relative; }
-        th:hover { color: var(--primary); background: #f1f5f9; }
-        th.sort-active::after { content: attr(data-symbol); margin-left: 5px; color: var(--primary); }
+        th { padding: 12px 15px; text-align: left; background: #f8fafc; color: #64748b; font-size: 0.85rem; cursor: pointer; user-select: none; }
+        th.sort-active { color: var(--primary); font-weight: bold; }
         td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; }
+        
+        /* CORES DAS CATEGORIAS */
+        .badge { padding: 6px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; color: white; display: inline-block; }
+        .cat-investimento { background: var(--invest) !important; }
+        .cat-despesa { background: var(--danger) !important; }
+        .cat-valor-a-receber { background: var(--warning) !important; }
+        .cat-receita { background: var(--success) !important; } /* Caso use o termo Receita */
+        .cat-pago { background: #94a3b8 !important; }
+        .cat-recebido { background: var(--success) !important; }
+
+        .btn-action { border: none; background: #f1f5f9; cursor: pointer; padding: 8px; border-radius: 6px; }
         .editable:hover { background: #fff7ed; cursor: pointer; }
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; color: white; }
-        .cat-investimento { background: var(--invest); }
-        .cat-despesa { background: var(--danger); }
-        .cat-valor-a-receber { background: var(--warning); }
     </style>
 </head>
 <body>
@@ -99,9 +105,9 @@
     <table>
         <thead>
             <tr>
-                <th onclick="ordenarDados('data')">Data</th>
-                <th onclick="ordenarDados('descricao')">Descrição</th>
-                <th onclick="ordenarDados('valor')">Valor</th>
+                <th id="th-data" onclick="ordenarDados('data')">Data ↕</th>
+                <th id="th-descricao" onclick="ordenarDados('descricao')">Descrição ↕</th>
+                <th id="th-valor" onclick="ordenarDados('valor')">Valor ↕</th>
                 <th>Status</th>
                 <th>Ações</th>
             </tr>
@@ -144,48 +150,25 @@ window.carregarDados = async function(mes = 'atual') {
     mesSelecionado = mes;
     let { data } = await _supabase.from('transacoes').select('*').eq('mes_referencia', mes);
     dadosGlobais = data || [];
-    ordenarDados(ordemAtual.coluna, true); // Mantém a ordenação atual ao carregar
+    ordenarDados(ordemAtual.coluna, true);
     atualizarListaMeses();
 };
 
 function ordenarDados(coluna, manterOrdem = false) {
     if (!manterOrdem) {
-        if (ordemAtual.coluna === coluna) {
-            ordemAtual.ascendente = !ordemAtual.ascendente;
-        } else {
-            ordemAtual.coluna = coluna;
-            ordemAtual.ascendente = true;
-        }
+        if (ordemAtual.coluna === coluna) ordemAtual.ascendente = !ordemAtual.ascendente;
+        else { ordemAtual.coluna = coluna; ordemAtual.ascendente = true; }
     }
-
     dadosGlobais.sort((a, b) => {
-        let valA = a[coluna];
-        let valB = b[coluna];
-
-        if (coluna === 'valor') {
-            return ordemAtual.ascendente ? valA - valB : valB - valA;
-        }
-        
-        valA = valA.toString().toLowerCase();
-        valB = valB.toString().toLowerCase();
-        
-        return ordemAtual.ascendente 
-            ? valA.localeCompare(valB) 
-            : valB.localeCompare(valA);
+        let valA = a[coluna], valB = b[coluna];
+        if (coluna === 'valor') return ordemAtual.ascendente ? valA - valB : valB - valA;
+        return ordemAtual.ascendente ? valA.toString().localeCompare(valB.toString()) : valB.toString().localeCompare(valA.toString());
     });
-
     renderizar(dadosGlobais);
-    atualizarHeaderTabela();
-}
-
-function atualizarHeaderTabela() {
-    document.querySelectorAll('th').forEach(th => {
-        th.classList.remove('sort-active');
-        if (th.innerText.toLowerCase().includes(ordemAtual.coluna)) {
-            th.classList.add('sort-active');
-            th.setAttribute('data-symbol', ordemAtual.ascendente ? '▲' : '▼');
-        }
-    });
+    
+    // Atualiza indicadores de ordenação
+    document.querySelectorAll('th').forEach(th => th.classList.remove('sort-active'));
+    document.getElementById(`th-${ordemAtual.coluna}`).classList.add('sort-active');
 }
 
 function renderizar(lista) {
@@ -196,19 +179,22 @@ function renderizar(lista) {
 
     lista.forEach(t => {
         s[t.categoria] += t.valor;
-        if(t.categoria === "Investimento") {
-            detalheInvest[t.descricao] = (detalheInvest[t.descricao] || 0) + t.valor;
-        }
+        if(t.categoria === "Investimento") detalheInvest[t.descricao] = (detalheInvest[t.descricao] || 0) + t.valor;
+        
+        // CORREÇÃO DAS CORES: Normaliza o nome da categoria para a classe CSS
+        const classeCor = t.categoria.toLowerCase().replace(/ /g, '-');
+
         corpo.innerHTML += `
             <tr>
                 <td class="editable" onclick="editarCampo(${t.id},'data','${t.data}')">${t.data.split('-').reverse().join('/')}</td>
                 <td class="editable" onclick="editarCampo(${t.id},'descricao','${t.descricao}')">${t.descricao}</td>
-                <td class="editable" onclick="editarCampo(${t.id},'valor','${t.valor}')">R$ ${t.valor.toLocaleString('pt-BR')}</td>
-                <td><span class="badge cat-${t.categoria.toLowerCase().replace(/ /g,'-')}">${t.categoria}</span></td>
-                <td><button onclick="excluir(${t.id})" style="border:none; background:none; cursor:pointer;">🗑️</button></td>
+                <td class="editable" onclick="editarCampo(${t.id},'valor','${t.valor}')">R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                <td><span class="badge cat-${classeCor}">${t.categoria}</span></td>
+                <td><button class="btn-action" onclick="excluir(${t.id})">🗑️</button></td>
             </tr>`;
     });
 
+    // Painel de Investimentos
     const keys = Object.keys(detalheInvest);
     document.getElementById('painel-investimentos').style.display = keys.length ? 'block' : 'none';
     keys.forEach(k => {
@@ -218,14 +204,13 @@ function renderizar(lista) {
     const saldoBanco = parseFloat(document.getElementById('saldo-inicial-input').value) || 0;
     const projecao = (s["Valor a receber"] + s["Recebido"]) - (s["Despesa"] + s["Pago"]);
     
-    document.getElementById('t-inicial').innerText = `R$ ${saldoBanco.toLocaleString('pt-BR')}`;
-    document.getElementById('t-receber').innerText = `R$ ${s["Valor a receber"].toLocaleString('pt-BR')}`;
-    document.getElementById('t-despesa').innerText = `R$ ${s["Despesa"].toLocaleString('pt-BR')}`;
-    document.getElementById('t-invest').innerText = `R$ ${s["Investimento"].toLocaleString('pt-BR')}`;
-    document.getElementById('t-dif').innerText = `R$ ${(saldoBanco + projecao).toLocaleString('pt-BR')}`;
+    document.getElementById('t-inicial').innerText = `R$ ${saldoBanco.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+    document.getElementById('t-receber').innerText = `R$ ${s["Valor a receber"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+    document.getElementById('t-despesa').innerText = `R$ ${s["Despesa"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+    document.getElementById('t-invest').innerText = `R$ ${s["Investimento"].toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+    document.getElementById('t-dif').innerText = `R$ ${(saldoBanco + projecao).toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
 }
 
-// Outras funções de edição e exclusão (mantidas conforme lógica anterior)
 window.editarCampo = async function(id, campo, valorAtual) {
     let novo = prompt(`Editar ${campo}:`, valorAtual);
     if (!novo || novo === valorAtual) return;
