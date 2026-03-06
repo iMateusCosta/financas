@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanças Cloud - Especial CDB</title>
+    <title>Finanças Cloud - Calendário Ativo</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { 
@@ -35,7 +35,6 @@
         .table-container { background: white; border-radius: 12px; overflow-x: auto; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         table { width: 100%; border-collapse: collapse; min-width: 600px; }
         th { background: #f8fafc; padding: 15px; text-align: left; color: #64748b; font-size: 0.85rem; cursor: pointer; border-bottom: 2px solid #e2e8f0; }
-        th.sort-active { color: var(--primary); font-weight: bold; }
         td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; }
         .badge { padding: 5px 10px; border-radius: 15px; font-size: 0.72rem; font-weight: bold; color: white; text-align: center; display: inline-block; min-width: 90px; }
         .cat-investimento { background: var(--invest) !important; }
@@ -43,14 +42,15 @@
         .cat-valor-a-receber { background: var(--warning) !important; }
         .cat-pago { background: #94a3b8 !important; }
         .cat-recebido { background: var(--success) !important; }
-        .editable:hover { background: #fff7ed; cursor: pointer; }
+        .editable:hover { background: #fff7ed; cursor: pointer; border-radius: 4px; }
         .btn-action { border: none; background: #f1f5f9; cursor: pointer; padding: 8px; border-radius: 6px; }
+        .date-editor { padding: 2px; border: 1px solid var(--primary); border-radius: 4px; font-family: inherit; }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
-    <div style="background: white; padding: 40px; border-radius: 15px; color: #1e293b; text-align: center;">
+    <div style="background: white; padding: 40px; border-radius: 15px; color: #1e293b; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
         <h2>🔐 Acesso Restrito</h2>
         <input type="password" id="senha-input" placeholder="Sua senha mestre">
         <button onclick="verificarSenha()" class="btn-add" style="width: 100%; margin-top: 10px;">Entrar</button>
@@ -82,7 +82,7 @@
     <div class="controls">
         <div class="form-row">
             <div class="field"><label>Data</label><input type="date" id="f-data"></div>
-            <div class="field"><label>Descrição</label><input type="text" id="f-desc" placeholder="DICA: Use 'CDB' no nome"></div>
+            <div class="field"><label>Descrição</label><input type="text" id="f-desc" placeholder="CDB soma ao saldo real"></div>
             <div class="field"><label>Valor R$</label><input type="number" id="f-valor" step="0.01"></div>
             <div class="field">
                 <label>Categoria</label>
@@ -101,7 +101,10 @@
                 <input type="number" id="saldo-inicial-input" step="0.01" style="width: 120px;" onchange="salvarSaldoNoBanco()">
             </div>
             <div style="display: flex; gap: 15px; align-items: center;">
-                <select id="select-meses" onchange="carregarDados(this.value)" style="width: auto;"></select>
+                <div class="field" style="flex-direction: row; align-items: center; gap: 8px;">
+                    <label style="font-size: 0.85rem; font-weight: 600;">Mês:</label>
+                    <select id="select-meses" onchange="carregarDados(this.value)" style="width: auto;"></select>
+                </div>
                 <button onclick="fecharMes()" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold;">🔒 Encerrar</button>
             </div>
         </div>
@@ -111,9 +114,9 @@
         <table>
             <thead>
                 <tr>
-                    <th id="th-data" onclick="ordenarDados('data')">Data ↕</th>
-                    <th id="th-descricao" onclick="ordenarDados('descricao')">Descrição ↕</th>
-                    <th id="th-valor" onclick="ordenarDados('valor')">Valor ↕</th>
+                    <th onclick="ordenarDados('data')">Data ↕</th>
+                    <th onclick="ordenarDados('descricao')">Descrição ↕</th>
+                    <th onclick="ordenarDados('valor')">Valor ↕</th>
                     <th>Status</th>
                     <th>Ações</th>
                 </tr>
@@ -178,27 +181,26 @@ function renderizar(lista) {
     const corpo = document.getElementById('tabela-corpo'), grid = document.getElementById('split-grid');
     corpo.innerHTML = ''; grid.innerHTML = '';
     let s = { "Valor a receber": 0, "Despesa": 0, "Investimento": 0, "Recebido": 0, "Pago": 0 };
-    let totalCDB = 0; // Para o Saldo Real
+    let totalCDB = 0;
     let detalheInvest = {};
 
     lista.forEach(t => {
-        s[t.categoria] += t.valor;
+        const catName = t.categoria || t.category;
+        s[catName] += t.valor;
         
-        // REGRA DO CDB: Se for investimento e tiver CDB no nome, somamos separadamente
-        if(t.categoria === "Investimento") {
+        if(catName === "Investimento") {
             detalheInvest[t.descricao] = (detalheInvest[t.descricao] || 0) + t.valor;
-            if(t.descricao.toUpperCase().includes("CDB")) {
-                totalCDB += t.valor;
-            }
+            if(t.descricao.toUpperCase().includes("CDB")) totalCDB += t.valor;
         }
         
-        const classeCor = t.categoria.toLowerCase().replace(/ /g, '-');
+        const classeCor = catName.toLowerCase().replace(/ /g, '-');
+        
         corpo.innerHTML += `
             <tr>
-                <td>${t.data.split('-').reverse().join('/')}</td>
+                <td class="editable" onclick="ativarCalendario(this, ${t.id}, '${t.data}')">${t.data.split('-').reverse().join('/')}</td>
                 <td class="editable" onclick="editarCampo(${t.id},'descricao','${t.descricao}')">${t.descricao}</td>
                 <td class="editable" onclick="editarCampo(${t.id},'valor','${t.valor}')">R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
-                <td><span class="badge cat-${classeCor}" onclick="toggleStatus(${t.id}, '${t.categoria}')" style="cursor:pointer">${t.categoria}</span></td>
+                <td><span class="badge cat-${classeCor}" onclick="toggleStatus(${t.id}, '${catName}')" style="cursor:pointer">${catName}</span></td>
                 <td><button class="btn-action" onclick="excluir(${t.id})">🗑️</button></td>
             </tr>`;
     });
@@ -206,8 +208,6 @@ function renderizar(lista) {
     const saldoBanco = parseFloat(document.getElementById('saldo-inicial-input').value) || 0;
     const totalGanhos = s["Valor a receber"] + s["Recebido"];
     const totalGastos = s["Despesa"] + s["Pago"];
-    
-    // Lógica Final: Apenas o CDB entra no saldo real
     const saldoFinal = saldoBanco + totalGanhos + totalCDB - totalGastos;
 
     document.getElementById('t-inicial').innerText = `R$ ${saldoBanco.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
@@ -223,13 +223,37 @@ function renderizar(lista) {
     });
 }
 
+// NOVO: Função para abrir o calendário diretamente na tabela
+window.ativarCalendario = function(celula, id, dataAtual) {
+    if (celula.querySelector('input')) return; // Evita abrir vários
+    celula.innerHTML = `<input type="date" class="date-editor" value="${dataAtual}" onchange="salvarNovaData(${id}, this.value)" onblur="carregarDados(mesSelecionado)">`;
+    celula.querySelector('input').focus();
+};
+
+window.salvarNovaData = async function(id, novaData) {
+    if (!novaData) return;
+    await _supabase.from('transacoes').update({ data: novaData }).eq('id', id);
+    carregarDados(mesSelecionado);
+};
+
+window.editarCampo = async function(id, campo, valorAtual) {
+    let novo = prompt(`Editar ${campo}:`, valorAtual);
+    if (novo === null || novo === valorAtual) return;
+    let up = {};
+    if (campo === 'valor') {
+        up[campo] = parseFloat(novo.replace(',', '.'));
+        if (isNaN(up[campo])) return alert("Valor inválido!");
+    } else { up[campo] = novo; }
+    await _supabase.from('transacoes').update(up).eq('id', id);
+    carregarDados(mesSelecionado);
+};
+
 window.importarFixos = async function() {
     if (!confirm("Importar lançamentos fixos?")) return;
     const hoje = new Date().toISOString().split('T')[0];
     const itens = [
         { data: hoje, descricao: "Salário Mensal", valor: 5000, categoria: "Valor a receber", mes_referencia: "atual" },
-        { data: hoje, descricao: "CDB Reserva", valor: 500, categoria: "Investimento", mes_referencia: "atual" },
-        { data: hoje, descricao: "Ações PETR4", valor: 200, categoria: "Investimento", mes_referencia: "atual" }
+        { data: hoje, descricao: "CDB Reserva", valor: 500, categoria: "Investimento", mes_referencia: "atual" }
     ];
     await _supabase.from('transacoes').insert(itens);
     carregarDados('atual');
@@ -254,7 +278,7 @@ window.adicionarAoBanco = async function() {
 };
 
 window.fecharMes = async function() {
-    const nomeMes = prompt("Nome para arquivar (ex: Fev/26):");
+    const nomeMes = prompt("Nome para arquivar (ex: Mar/26):");
     if (!nomeMes || mesSelecionado !== 'atual') return;
     await _supabase.from('transacoes').update({ mes_referencia: nomeMes }).eq('mes_referencia', 'atual');
     carregarDados('atual');
