@@ -131,7 +131,7 @@ const sb = supabase.createClient(
 const $ = id => document.getElementById(id);
 const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const CATS = ['Moradia','Alimentação','Transporte','Saúde','Lazer','Contas','Trabalho','Outros'];
+const CATS = ['Moradia','Alimentação','Transporte','Saúde','Lazer','Contas','Trabalho','Roupas','Cabelo','Dizimo','Oferta','Outros'];
 const optCats = sel => CATS.map(c => `<option${c === sel ? ' selected' : ''}>${c}</option>`).join('');
 $('categoria').innerHTML = optCats('Outros');
 
