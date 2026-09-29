@@ -11,7 +11,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-100 min-h-screen pb-20 font-sans">
+<body class="bg-gray-100 min-h-screen pb-20 font-sans overflow-x-hidden">
 
 <div id="login" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
   <form id="login-form" class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
@@ -39,7 +39,7 @@
     </div>
   </header>
 
-  <div id="alerta" class="mb-6 hidden flex items-center justify-between p-4 rounded-xl border-2 bg-red-50 border-red-200 text-red-800">
+  <div id="alerta" class="mb-6 hidden flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 rounded-xl border-2 bg-red-50 border-red-200 text-red-800">
     <div class="flex items-center gap-3">
       <span class="text-2xl">🚨</span>
       <div>
@@ -98,20 +98,11 @@
     </form>
   </section>
 
-  <div class="bg-white rounded-xl shadow-lg overflow-x-auto border border-gray-200 mb-8">
-    <table class="w-full text-left border-collapse min-w-[680px]">
-      <thead class="bg-gray-50 border-b">
-        <tr>
-          <th class="p-4 text-[10px] font-black text-gray-400 uppercase">Data</th>
-          <th class="p-4 text-[10px] font-black text-gray-400 uppercase">Descrição</th>
-          <th class="p-4 text-[10px] font-black text-gray-400 uppercase">Categoria</th>
-          <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-right">Valor</th>
-          <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-center">Status</th>
-          <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-center">Ações</th>
-        </tr>
-      </thead>
-      <tbody id="lista"></tbody>
-    </table>
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 mb-8">
+    <div class="hidden md:grid md:grid-cols-[110px_1fr_130px_130px_120px_40px] gap-2 p-4 bg-gray-50 border-b text-[10px] font-black text-gray-400 uppercase">
+      <span>Data</span><span>Descrição</span><span>Categoria</span><span class="text-right">Valor</span><span class="text-center">Status</span><span></span>
+    </div>
+    <div id="lista"></div>
     <p id="vazio" class="hidden p-6 text-center text-xs text-gray-400 font-bold uppercase">Nenhum lançamento neste mês</p>
   </div>
 
@@ -273,21 +264,23 @@ function render() {
   $('vazio').classList.toggle('hidden', transacoes.length > 0);
   $('lista').innerHTML = transacoes.map(t => {
     const rec = t.tipo === 'receita', ok = t.status === true;
-    return `<tr class="hover:bg-gray-50 border-b border-gray-100 text-[11px]" data-id="${t.id}">
-      <td class="p-3"><input type="date" value="${esc(t.data)}" data-f="data" class="bg-transparent outline-none font-mono"></td>
-      <td class="p-3"><input type="text" value="${esc(t.descricao)}" data-f="descricao" class="bg-transparent outline-none w-full uppercase font-bold text-gray-600"></td>
-      <td class="p-3"><select data-f="categoria" class="bg-transparent outline-none text-gray-500">${optCats(t.categoria || 'Outros')}</select></td>
-      <td class="p-3 text-right font-black ${rec ? 'text-emerald-600' : 'text-red-500'}">
-        <div class="flex items-center justify-end"><span>R$</span>
-        <input type="number" step="0.01" value="${esc(t.valor)}" data-f="valor" class="bg-transparent w-20 text-right outline-none"></div>
-      </td>
-      <td class="p-3 text-center">
+    return `<div class="p-3 border-b border-gray-100 text-[11px] grid grid-cols-2 gap-2 items-center hover:bg-gray-50 md:grid-cols-[110px_1fr_130px_130px_120px_40px] md:px-4" data-id="${t.id}">
+      <div class="col-span-2 flex items-center gap-2 md:contents">
+        <input type="text" value="${esc(t.descricao)}" data-f="descricao" class="min-w-0 flex-1 bg-transparent outline-none uppercase font-bold text-gray-700 text-xs md:order-2">
+        <button data-act="del" aria-label="Excluir" class="text-gray-300 hover:text-red-500 font-black px-2 md:order-6">✕</button>
+      </div>
+      <input type="date" value="${esc(t.data)}" data-f="data" class="min-w-0 w-full bg-transparent outline-none font-mono md:order-1">
+      <select data-f="categoria" class="min-w-0 w-full bg-transparent outline-none text-gray-500 md:order-3">${optCats(t.categoria || 'Outros')}</select>
+      <div class="flex items-center font-black text-sm ${rec ? 'text-emerald-600' : 'text-red-500'} md:justify-end md:order-4">
+        <span class="mr-1">R$</span>
+        <input type="number" step="0.01" value="${esc(t.valor)}" data-f="valor" class="min-w-0 w-24 bg-transparent outline-none">
+      </div>
+      <div class="text-right md:text-center md:order-5">
         <button data-act="status" class="px-3 py-1 rounded-full text-[9px] font-black border-2 uppercase ${ok ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-white text-gray-400 border-gray-200'}">
           ${rec ? (ok ? 'Recebido' : 'A Receber') : (ok ? 'Pago' : 'Pendente')}
         </button>
-      </td>
-      <td class="p-3 text-center"><button data-act="del" class="text-gray-300 hover:text-red-500 font-black px-2">X</button></td>
-    </tr>`;
+      </div>
+    </div>`;
   }).join('');
 }
 
@@ -295,7 +288,7 @@ function render() {
 $('lista').addEventListener('change', e => {
   const f = e.target.dataset.f;
   if (!f) return;
-  const id = +e.target.closest('tr').dataset.id, t = transacoes.find(x => x.id === id);
+  const id = +e.target.closest('[data-id]').dataset.id, t = transacoes.find(x => x.id === id);
   const v = f === 'valor' ? parseFloat(e.target.value) : e.target.value;
   if (f === 'valor') {
     if (!(v > 0)) return render();
@@ -311,7 +304,7 @@ $('lista').addEventListener('change', e => {
 $('lista').addEventListener('click', async e => {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
-  const id = +b.closest('tr').dataset.id, t = transacoes.find(x => x.id === id);
+  const id = +b.closest('[data-id]').dataset.id, t = transacoes.find(x => x.id === id);
   if (b.dataset.act === 'status') {
     // Marcar como pago/recebido movimenta o saldo automaticamente; desmarcar desfaz
     const virando = !t.status, sinal = t.tipo === 'receita' ? 1 : -1;
