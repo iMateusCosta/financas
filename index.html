@@ -72,6 +72,17 @@
     </div>
   </div>
 
+  <div class="grid grid-cols-2 gap-4 mb-8 text-center">
+    <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-emerald-500">
+      <p class="text-gray-400 text-[10px] uppercase font-black mb-1">Recebido no Mês</p>
+      <p id="t-recebido" class="text-2xl font-black text-emerald-600">R$ 0,00</p>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-red-500">
+      <p class="text-gray-400 text-[10px] uppercase font-black mb-1">Pago no Mês</p>
+      <p id="t-pago" class="text-2xl font-black text-red-600">R$ 0,00</p>
+    </div>
+  </div>
+
   <section class="bg-white p-5 rounded-xl shadow-md mb-8 border border-gray-100">
     <h2 class="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest">Novo Lançamento</h2>
     <form id="form" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
@@ -204,12 +215,17 @@ $('form').onsubmit = async e => {
 
 // ---------- Cálculo ----------
 function calc() {
-  let receber = 0, pagar = 0;
+  let receber = 0, pagar = 0, recebido = 0, pago = 0;
   for (const t of transacoes) {
-    if (t.status) continue;
     const v = parseFloat(t.valor) || 0;
+    if (t.status) {
+      if (t.tipo === 'receita') recebido += v; else pago += v;
+      continue;
+    }
     if (t.tipo === 'receita') receber += v; else pagar += v;
   }
+  $('t-recebido').textContent = fmt(recebido);
+  $('t-pago').textContent = fmt(pago);
   $('t-receber').textContent = fmt(receber);
   $('t-pagar').textContent = fmt(pagar);
   $('t-balanco').textContent = fmt(receber - pagar);
