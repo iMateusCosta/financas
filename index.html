@@ -98,6 +98,17 @@
     </form>
   </section>
 
+  <section class="bg-white p-5 rounded-xl shadow-md mb-8 border border-gray-100">
+    <h2 class="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest">Importar extrato (CSV)</h2>
+    <input type="file" id="arq" accept=".csv,text/csv" class="text-xs w-full">
+    <div id="imp" class="hidden mt-4 text-xs text-gray-600 space-y-3">
+      <p id="imp-resumo"></p>
+      <label class="flex items-start gap-2"><input type="checkbox" id="imp-ign" checked class="mt-0.5"> <span>Ignorar aplicações e resgates (movimentação entre suas contas)</span></label>
+      <label class="flex items-start gap-2"><input type="checkbox" id="imp-saldo" checked class="mt-0.5"> <span>Atualizar meu saldo com o saldo do extrato (<strong id="imp-saldo-v"></strong>)</span></label>
+      <button id="imp-ok" class="w-full md:w-auto bg-blue-600 text-white font-black px-6 py-2 rounded text-[10px] uppercase hover:bg-blue-700 disabled:opacity-40">Importar</button>
+    </div>
+  </section>
+
   <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 mb-8">
     <div class="hidden md:grid md:grid-cols-[110px_1fr_130px_130px_120px_40px] gap-2 p-4 bg-gray-50 border-b text-[10px] font-black text-gray-400 uppercase">
       <span>Data</span><span>Descrição</span><span>Categoria</span><span class="text-right">Valor</span><span class="text-center">Status</span><span></span>
@@ -258,6 +269,114 @@ function calc() {
       <div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-red-400" style="width:${(v / total * 100).toFixed(1)}%"></div></div>
     </div>`).join('');
 }
+
+// ---------- Importar extrato ----------
+let imp = null;
+const num = v => parseFloat(String(v).replace(/\./g, '').replace(',', '.'));
+const norm = v => String(v).replace(/\s+/g, ' ').trim();
+const chaveDe = r => [r.data, r.descricao.toLowerCase(), Number(r.valor).toFixed(2), r.tipo].join('|');
+
+function categoriaAuto(txt) {
+  const t = txt.toLowerCase();
+  if (/pizzaria|restaurante|lanch|padaria|mercado|supermerc|a[cç]ougue|ifood|sorvet|caf[eé]/.test(t)) return 'Alimentação';
+  if (/posto|combust|uber|ped[aá]gio|concession|estacion|auto/.test(t)) return 'Transporte';
+  if (/farmac|drog|cl[ií]nica|hospital|odonto/.test(t)) return 'Saúde';
+  if (/financ|pagamento efetuado|energia|sabesp|internet|telefon/.test(t)) return 'Contas';
+  if (/cinema|netflix|spotify|game/.test(t)) return 'Lazer';
+  return 'Outros';
+}
+
+function parseExtrato(txt) {
+  const linhas = txt.split(/\r?\n/);
+  const i = linhas.findIndex(l => /^\s*Data Lan/i.test(l));
+  if (i < 0) throw new Error('Cabeçalho "Data Lançamento" não encontrado. Confira se é o extrato em CSV.');
+  const sl = linhas.find(l => /^\s*Saldo\s*;/i.test(l));
+  const saldoExtrato = sl ? num(sl.split(';')[1]) : null;
+  const out = [];
+  for (const l of linhas.slice(i + 1)) {
+    const c = l.split(';');
+    if (c.length < 4 || !/^\d{2}\/\d{2}\/\d{4}$/.test(c[0].trim())) continue;
+    const [d, m, a] = c[0].trim().split('/');
+    const hist = norm(c[1]), desc = norm(c[2]), v = num(c[3]);
+    if (isNaN(v) || v === 0) continue;
+    let descricao = desc;
+    if (/^pix recebido/i.test(hist)) descricao = `Pix de ${desc}`;
+    else if (/^pix enviado devolvido/i.test(hist)) descricao = `Pix devolvido: ${desc}`;
+    else if (/^pix enviado/i.test(hist)) descricao = `Pix para ${desc}`;
+    else if (!/^compra/i.test(hist)) descricao = `${hist}: ${desc}`;
+    out.push({
+      data: `${a}-${m}-${d}`, descricao, valor: Math.abs(v),
+      tipo: v > 0 ? 'receita' : 'despesa',
+      categoria: categoriaAuto(hist + ' ' + desc),
+      transf: /^(resgate|aplica)/i.test(hist)
+    });
+  }
+  return { linhas: out, saldoExtrato };
+}
+
+// Separa o que é novo do que já existe (conta ocorrências, então dois gastos iguais no mesmo dia são preservados)
+function novosImport() {
+  const ign = $('imp-ign').checked, vistos = {}, novos = [];
+  let dup = 0, transf = 0;
+  for (const r of imp.linhas) {
+    if (ign && r.transf) { transf++; continue; }
+    const k = chaveDe(r);
+    vistos[k] = (vistos[k] || 0) + 1;
+    if (vistos[k] <= (imp.existentes[k] || 0)) dup++; else novos.push(r);
+  }
+  return { novos, dup, transf };
+}
+
+function resumoImport() {
+  const { novos, dup, transf } = novosImport();
+  const soma = tp => novos.filter(r => r.tipo === tp).reduce((s, r) => s + r.valor, 0);
+  $('imp-resumo').innerHTML = `${imp.linhas.length} lançamentos no arquivo: <strong>${novos.length} novos</strong> (receitas ${fmt(soma('receita'))} · despesas ${fmt(soma('despesa'))}), ${dup} já existentes, ${transf} ignorados.`;
+  $('imp-ok').disabled = !novos.length;
+}
+
+$('imp-ign').onchange = () => imp && resumoImport();
+
+$('arq').onchange = async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    let txt = await f.text();
+    if (txt.includes('\uFFFD')) txt = new TextDecoder('latin1').decode(await f.arrayBuffer());
+    const { linhas, saldoExtrato } = parseExtrato(txt);
+    if (!linhas.length) throw new Error('Nenhum lançamento encontrado no arquivo.');
+    const datas = linhas.map(l => l.data).sort();
+    const { data: ex, error } = await sb.from('transacoes').select('data,descricao,valor,tipo').gte('data', datas[0]).lte('data', datas[datas.length - 1]);
+    if (error) throw error;
+    const existentes = {};
+    for (const r of ex) { const k = chaveDe(r); existentes[k] = (existentes[k] || 0) + 1; }
+    imp = { linhas, existentes, saldoExtrato, ultimo: datas[datas.length - 1] };
+    $('imp-saldo-v').textContent = saldoExtrato != null ? fmt(saldoExtrato) : 'indisponível';
+    $('imp-saldo').checked = saldoExtrato != null;
+    $('imp-saldo').disabled = saldoExtrato == null;
+    $('imp').classList.remove('hidden');
+    resumoImport();
+  } catch (err) {
+    alert('Erro ao ler o extrato: ' + (err.message || err));
+    e.target.value = '';
+  }
+};
+
+$('imp-ok').onclick = async () => {
+  const { novos } = novosImport();
+  if (!novos.length) return;
+  $('imp-ok').disabled = true;
+  // Importados entram como já pagos/recebidos (o extrato é o que já aconteceu)
+  const rows = novos.map(r => ({ descricao: r.descricao, valor: r.valor, data: r.data, tipo: r.tipo, categoria: r.categoria, status: true }));
+  const { error } = await sb.from('transacoes').insert(rows);
+  if (error) { $('imp-ok').disabled = false; return alert('Erro ao importar: ' + error.message); }
+  if ($('imp-saldo').checked && imp.saldoExtrato != null) { saldo = imp.saldoExtrato; await salvarSaldo(); }
+  $('mes').value = imp.ultimo.substring(0, 7);
+  $('arq').value = '';
+  $('imp').classList.add('hidden');
+  imp = null;
+  await load();
+  alert(`${novos.length} lançamentos importados.`);
+};
 
 // ---------- Render ----------
 function render() {
