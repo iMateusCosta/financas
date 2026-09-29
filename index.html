@@ -13,14 +13,13 @@
 </head>
 <body class="bg-gray-100 min-h-screen pb-20 font-sans">
 
-<!-- LOGIN (Supabase Auth) -->
 <div id="login" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
   <form id="login-form" class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
     <h2 class="text-2xl font-black text-gray-800 mb-4 uppercase tracking-tighter">Acesso Restrito</h2>
     <input type="email" id="email" placeholder="E-mail" required autocomplete="username" class="w-full border-2 border-gray-100 rounded-xl p-3 mb-3 outline-none focus:border-blue-500 text-center">
     <input type="password" id="senha" placeholder="Senha" required autocomplete="current-password" class="w-full border-2 border-gray-100 rounded-xl p-3 mb-4 outline-none focus:border-blue-500 text-center">
     <button class="w-full bg-blue-600 text-white font-black py-3 rounded-xl hover:bg-blue-700 transition uppercase text-sm">Entrar</button>
-    <p id="erro-login" class="text-red-500 text-[10px] font-bold mt-3 uppercase hidden">Login inválido</p>
+    <p id="erro-login" class="text-red-500 text-[10px] font-bold mt-3 uppercase hidden"></p>
   </form>
 </div>
 
@@ -50,6 +49,7 @@
     </div>
     <div id="alerta-valor" class="text-xl font-black"></div>
   </div>
+  <p id="atrasadas" class="hidden mb-6 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3"></p>
 
   <div class="bg-white p-3 rounded-xl shadow-sm mb-6 flex items-center justify-center gap-3 border border-gray-200">
     <button id="mes-ant" class="px-3 py-1 font-black text-gray-500 hover:text-blue-600">‹</button>
@@ -74,7 +74,7 @@
 
   <section class="bg-white p-5 rounded-xl shadow-md mb-8 border border-gray-100">
     <h2 class="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest">Novo Lançamento</h2>
-    <form id="form" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+    <form id="form" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
       <input type="text" id="desc" placeholder="Descrição" class="border rounded p-2 text-sm outline-none focus:border-blue-400" required>
       <input type="number" id="valor" step="0.01" min="0.01" placeholder="Valor (R$)" class="border rounded p-2 text-sm font-bold outline-none focus:border-blue-400" required>
       <input type="date" id="data" class="border rounded p-2 text-sm outline-none focus:border-blue-400" required>
@@ -82,16 +82,18 @@
         <option value="receita">Receita (+)</option>
         <option value="despesa">Despesa (-)</option>
       </select>
+      <select id="categoria" class="border rounded p-2 text-sm outline-none bg-gray-50 text-gray-600"></select>
       <button class="bg-blue-600 text-white font-black py-2 rounded text-[10px] uppercase hover:bg-blue-700 transition">Lançar agora</button>
     </form>
   </section>
 
-  <div class="bg-white rounded-xl shadow-lg overflow-x-auto border border-gray-200">
-    <table class="w-full text-left border-collapse min-w-[560px]">
+  <div class="bg-white rounded-xl shadow-lg overflow-x-auto border border-gray-200 mb-8">
+    <table class="w-full text-left border-collapse min-w-[680px]">
       <thead class="bg-gray-50 border-b">
         <tr>
           <th class="p-4 text-[10px] font-black text-gray-400 uppercase">Data</th>
           <th class="p-4 text-[10px] font-black text-gray-400 uppercase">Descrição</th>
+          <th class="p-4 text-[10px] font-black text-gray-400 uppercase">Categoria</th>
           <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-right">Valor</th>
           <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-center">Status</th>
           <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-center">Ações</th>
@@ -101,6 +103,11 @@
     </table>
     <p id="vazio" class="hidden p-6 text-center text-xs text-gray-400 font-bold uppercase">Nenhum lançamento neste mês</p>
   </div>
+
+  <section id="cats-box" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hidden">
+    <h2 class="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest">Despesas por categoria (mês)</h2>
+    <div id="cats" class="space-y-3"></div>
+  </section>
 </main>
 
 <script>
@@ -111,8 +118,11 @@ const sb = supabase.createClient(
 const $ = id => document.getElementById(id);
 const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const CATS = ['Moradia','Alimentação','Transporte','Saúde','Lazer','Contas','Trabalho','Outros'];
+const optCats = sel => CATS.map(c => `<option${c === sel ? ' selected' : ''}>${c}</option>`).join('');
+$('categoria').innerHTML = optCats('Outros');
 
-let transacoes = [], saldo = 0;
+let transacoes = [], atrasadas = [], saldo = 0;
 
 // ---------- Auth ----------
 $('login-form').onsubmit = async e => {
@@ -125,13 +135,12 @@ $('sair').onclick = () => sb.auth.signOut();
 sb.auth.onAuthStateChange((_, session) => {
   $('login').classList.toggle('hidden', !!session);
   $('app').classList.toggle('hidden', !session);
-  if (session) load(); else { transacoes = []; }
+  if (session) load(); else { transacoes = []; atrasadas = []; }
 });
 
 // ---------- Datas ----------
-const hoje = new Date();
 const ym = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-$('mes').value = ym(hoje);
+$('mes').value = ym(new Date());
 function mudaMes(delta) {
   const [a, m] = $('mes').value.split('-').map(Number);
   $('mes').value = ym(new Date(a, m - 1 + delta, 1));
@@ -146,18 +155,26 @@ async function load() {
   const [a, m] = $('mes').value.split('-').map(Number);
   const ini = `${$('mes').value}-01`;
   const fim = `${$('mes').value}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`;
-  const [t, c] = await Promise.all([
+  const [t, c, at] = await Promise.all([
     sb.from('transacoes').select('*').gte('data', ini).lte('data', fim).order('data', { ascending: true }),
-    sb.from('configuracoes').select('saldo_em_caixa').eq('id', 1).maybeSingle()
+    sb.from('configuracoes').select('saldo_em_caixa').eq('id', 1).maybeSingle(),
+    sb.from('transacoes').select('*').lt('data', ini).eq('status', false).order('data', { ascending: true })
   ]);
   if (t.error) return console.error(t.error.message);
   transacoes = t.data;
+  atrasadas = at.data || [];
   saldo = Number(c.data?.saldo_em_caixa) || 0;
   if (document.activeElement !== $('saldo')) $('saldo').value = saldo;
   render(); calc();
 }
 
-// Atualiza local primeiro (otimista) e só recarrega se o banco falhar
+async function salvarSaldo() {
+  $('saldo').value = saldo.toFixed(2);
+  const { error } = await sb.from('configuracoes').upsert({ id: 1, saldo_em_caixa: saldo });
+  if (error) console.error(error.message);
+}
+
+// Atualização otimista: tela primeiro, banco depois (reverte se falhar)
 async function patch(id, campos) {
   const t = transacoes.find(x => x.id === id);
   if (!t) return;
@@ -168,12 +185,7 @@ async function patch(id, campos) {
   if (error) { console.error(error.message); Object.assign(t, antigo); render(); calc(); }
 }
 
-$('saldo').onchange = async e => {
-  saldo = parseFloat(e.target.value) || 0;
-  calc();
-  const { error } = await sb.from('configuracoes').upsert({ id: 1, saldo_em_caixa: saldo });
-  if (error) console.error(error.message);
-};
+$('saldo').onchange = e => { saldo = parseFloat(e.target.value) || 0; calc(); salvarSaldo(); };
 
 $('form').onsubmit = async e => {
   e.preventDefault();
@@ -181,36 +193,63 @@ $('form').onsubmit = async e => {
   const { error } = await sb.from('transacoes').insert([{
     descricao: $('desc').value.trim(),
     valor: parseFloat($('valor').value),
-    data: d, tipo: $('tipo').value, status: false
+    data: d, tipo: $('tipo').value, categoria: $('categoria').value, status: false
   }]);
   if (error) return alert('Erro ao lançar: ' + error.message);
   $('form').reset();
+  $('categoria').value = 'Outros';
   $('mes').value = d.substring(0, 7);
   load();
 };
 
 // ---------- Cálculo ----------
 function calc() {
-  let receber = 0, pagar = 0, sim = saldo, menor = saldo, limite = null;
+  let receber = 0, pagar = 0;
   for (const t of transacoes) {
     if (t.status) continue;
     const v = parseFloat(t.valor) || 0;
-    if (t.tipo === 'receita') { receber += v; sim += v; }
-    else {
-      pagar += v; sim -= v;
-      if (sim < 0 && !limite) limite = t.data;
-    }
-    if (sim < menor) menor = sim;
+    if (t.tipo === 'receita') receber += v; else pagar += v;
   }
   $('t-receber').textContent = fmt(receber);
   $('t-pagar').textContent = fmt(pagar);
   $('t-balanco').textContent = fmt(receber - pagar);
+
+  // Simulação cronológica: pendências de meses anteriores entram primeiro
+  let sim = saldo, menor = saldo, limite = null, liqAtras = 0;
+  for (const t of [...atrasadas, ...transacoes]) {
+    if (t.status) continue;
+    const v = parseFloat(t.valor) || 0;
+    const delta = t.tipo === 'receita' ? v : -v;
+    if (atrasadas.includes(t)) liqAtras += delta;
+    sim += delta;
+    if (delta < 0 && sim < 0 && !limite) limite = t.data;
+    if (sim < menor) menor = sim;
+  }
   $('alerta').classList.toggle('hidden', menor >= 0);
   if (menor < 0) {
     const dt = limite ? limite.split('-').reverse().slice(0, 2).join('/') : '--/--';
     $('alerta-desc').innerHTML = `Seu saldo cobre as despesas apenas até o dia <strong>${dt}</strong>.`;
     $('alerta-valor').textContent = `Faltam: ${fmt(Math.abs(menor))}`;
   }
+  $('atrasadas').classList.toggle('hidden', !atrasadas.length);
+  if (atrasadas.length) {
+    $('atrasadas').textContent = `⚠️ ${atrasadas.length} lançamento(s) pendente(s) de meses anteriores (líquido ${fmt(liqAtras)}), já considerados no alerta.`;
+  }
+
+  // Despesas por categoria
+  const porCat = {};
+  for (const t of transacoes) if (t.tipo === 'despesa') {
+    const c = t.categoria || 'Outros';
+    porCat[c] = (porCat[c] || 0) + (parseFloat(t.valor) || 0);
+  }
+  const lista = Object.entries(porCat).sort((a, b) => b[1] - a[1]);
+  const total = lista.reduce((s, [, v]) => s + v, 0);
+  $('cats-box').classList.toggle('hidden', !lista.length);
+  $('cats').innerHTML = lista.map(([c, v]) => `
+    <div>
+      <div class="flex justify-between text-[11px] font-bold text-gray-600 mb-1"><span>${esc(c)}</span><span>${fmt(v)} · ${Math.round(v / total * 100)}%</span></div>
+      <div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-red-400" style="width:${(v / total * 100).toFixed(1)}%"></div></div>
+    </div>`).join('');
 }
 
 // ---------- Render ----------
@@ -221,6 +260,7 @@ function render() {
     return `<tr class="hover:bg-gray-50 border-b border-gray-100 text-[11px]" data-id="${t.id}">
       <td class="p-3"><input type="date" value="${esc(t.data)}" data-f="data" class="bg-transparent outline-none font-mono"></td>
       <td class="p-3"><input type="text" value="${esc(t.descricao)}" data-f="descricao" class="bg-transparent outline-none w-full uppercase font-bold text-gray-600"></td>
+      <td class="p-3"><select data-f="categoria" class="bg-transparent outline-none text-gray-500">${optCats(t.categoria || 'Outros')}</select></td>
       <td class="p-3 text-right font-black ${rec ? 'text-emerald-600' : 'text-red-500'}">
         <div class="flex items-center justify-end"><span>R$</span>
         <input type="number" step="0.01" value="${esc(t.valor)}" data-f="valor" class="bg-transparent w-20 text-right outline-none"></div>
@@ -235,20 +275,34 @@ function render() {
   }).join('');
 }
 
-// Delegação de eventos: um listener só para a tabela inteira
+// Um listener só para a tabela inteira
 $('lista').addEventListener('change', e => {
-  const f = e.target.dataset.f, id = +e.target.closest('tr').dataset.id;
+  const f = e.target.dataset.f;
   if (!f) return;
+  const id = +e.target.closest('tr').dataset.id, t = transacoes.find(x => x.id === id);
   const v = f === 'valor' ? parseFloat(e.target.value) : e.target.value;
-  if (f === 'valor' && !(v > 0)) return render();
+  if (f === 'valor') {
+    if (!(v > 0)) return render();
+    // Se já estava pago/recebido, corrige o saldo pela diferença
+    if (t.status) {
+      saldo += (t.tipo === 'receita' ? 1 : -1) * (v - (parseFloat(t.valor) || 0));
+      salvarSaldo();
+    }
+  }
   patch(id, { [f]: v });
 });
+
 $('lista').addEventListener('click', async e => {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
   const id = +b.closest('tr').dataset.id, t = transacoes.find(x => x.id === id);
-  if (b.dataset.act === 'status') patch(id, { status: !t.status });
-  else if (confirm('Deseja excluir este registro?')) {
+  if (b.dataset.act === 'status') {
+    // Marcar como pago/recebido movimenta o saldo automaticamente; desmarcar desfaz
+    const virando = !t.status, sinal = t.tipo === 'receita' ? 1 : -1;
+    saldo += (virando ? 1 : -1) * sinal * (parseFloat(t.valor) || 0);
+    salvarSaldo();
+    patch(id, { status: virando });
+  } else if (confirm('Deseja excluir este registro?')) {
     const { error } = await sb.from('transacoes').delete().eq('id', id);
     if (error) return alert(error.message);
     transacoes = transacoes.filter(x => x.id !== id);
