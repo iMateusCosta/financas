@@ -1,311 +1,260 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão de Fluxo de Caixa</title>
-    <meta name="apple-mobile-web-app-title" content="MyFinance">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyFinance Pro</title>
+<meta name="apple-mobile-web-app-title" content="MyFinance">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/10433/10433048.png">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-100 min-h-screen pb-20 font-sans">
 
-    <div id="login-overlay" class="fixed inset-0 bg-slate-900 z-[999] flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
-            <h2 class="text-2xl font-black text-gray-800 mb-2 uppercase tracking-tighter">Acesso Restrito</h2>
-            <p class="text-gray-400 text-xs mb-6 uppercase font-bold">Insira a senha para gerenciar o caixa</p>
-            <input type="password" id="input-senha" placeholder="Senha" 
-                class="w-full border-2 border-gray-100 rounded-xl p-3 mb-4 outline-none focus:border-blue-500 text-center font-bold">
-            <button onclick="verificarSenha()" 
-                class="w-full bg-blue-600 text-white font-black py-3 rounded-xl hover:bg-blue-700 transition uppercase text-sm">
-                Entrar no Sistema
-            </button>
-            <p id="erro-senha" class="text-red-500 text-[10px] font-bold mt-3 uppercase hidden">Senha Incorreta!</p>
-        </div>
+<!-- LOGIN (Supabase Auth) -->
+<div id="login" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+  <form id="login-form" class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
+    <h2 class="text-2xl font-black text-gray-800 mb-4 uppercase tracking-tighter">Acesso Restrito</h2>
+    <input type="email" id="email" placeholder="E-mail" required autocomplete="username" class="w-full border-2 border-gray-100 rounded-xl p-3 mb-3 outline-none focus:border-blue-500 text-center">
+    <input type="password" id="senha" placeholder="Senha" required autocomplete="current-password" class="w-full border-2 border-gray-100 rounded-xl p-3 mb-4 outline-none focus:border-blue-500 text-center">
+    <button class="w-full bg-blue-600 text-white font-black py-3 rounded-xl hover:bg-blue-700 transition uppercase text-sm">Entrar</button>
+    <p id="erro-login" class="text-red-500 text-[10px] font-bold mt-3 uppercase hidden">Login inválido</p>
+  </form>
+</div>
+
+<main id="app" class="container mx-auto p-4 max-w-5xl hidden">
+  <header class="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+    <h1 class="text-2xl font-black text-gray-800 tracking-tighter uppercase italic">MyFinance Pro</h1>
+    <div class="bg-slate-900 text-white p-4 rounded-2xl shadow-xl flex items-center gap-4">
+      <div class="leading-tight text-right">
+        <p class="text-[9px] font-black uppercase text-slate-400">Saldo Atual</p>
+        <p class="text-[9px] font-bold uppercase text-blue-400">Disponível agora</p>
+      </div>
+      <div class="flex items-center text-2xl font-black">
+        <span class="mr-1 text-slate-500 text-lg">R$</span>
+        <input type="number" id="saldo" step="0.01" placeholder="0,00" class="bg-transparent border-b-2 border-slate-700 w-32 outline-none focus:border-blue-500 text-white">
+      </div>
+      <button id="sair" class="text-[9px] text-slate-400 uppercase font-black hover:text-white">Sair</button>
     </div>
+  </header>
 
-    <div id="conteudo-sistema" class="hidden">
-        <div class="container mx-auto p-4 max-w-5xl">
-            </div>
+  <div id="alerta" class="mb-6 hidden flex items-center justify-between p-4 rounded-xl border-2 bg-red-50 border-red-200 text-red-800">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🚨</span>
+      <div>
+        <p class="font-black uppercase text-xs tracking-widest">Atenção ao Fluxo de Caixa</p>
+        <p id="alerta-desc" class="text-sm font-medium"></p>
+      </div>
     </div>
+    <div id="alerta-valor" class="text-xl font-black"></div>
+  </div>
 
-    <script>
-        // DEFINA SUA SENHA AQUI
-        const SENHA_MESTRA = "212244"; 
+  <div class="bg-white p-3 rounded-xl shadow-sm mb-6 flex items-center justify-center gap-3 border border-gray-200">
+    <button id="mes-ant" class="px-3 py-1 font-black text-gray-500 hover:text-blue-600">‹</button>
+    <input type="month" id="mes" class="border rounded-lg p-1 font-bold outline-none focus:border-blue-500 text-gray-700">
+    <button id="mes-prox" class="px-3 py-1 font-black text-gray-500 hover:text-blue-600">›</button>
+  </div>
 
-        function verificarSenha() {
-            const senhaDigitada = document.getElementById('input-senha').value;
-            const erro = document.getElementById('erro-senha');
-            
-            if (senhaDigitada === SENHA_MESTRA) {
-                // Esconde o login e mostra o sistema
-                document.getElementById('login-overlay').classList.add('hidden');
-                document.getElementById('conteudo-sistema').classList.remove('hidden');
-                
-                // Salva na sessão para não pedir de novo ao dar F5 (opcional)
-                sessionStorage.setItem('autenticado', 'true');
-                
-                // Chama a função inicial do seu sistema
-                fetchAll(); 
-            } else {
-                erro.classList.remove('hidden');
-                document.getElementById('input-senha').value = '';
-            }
-        }
-
-        // Verifica se já estava logado nesta sessão
-        window.onload = () => {
-            if (sessionStorage.getItem('autenticado') === 'true') {
-                document.getElementById('login-overlay').classList.add('hidden');
-                document.getElementById('conteudo-sistema').classList.remove('hidden');
-                fetchAll();
-            }
-        };
-    </script>
-
-    <div class="container mx-auto p-4 max-w-5xl">
-        <header class="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
-            <h1 class="text-2xl font-black text-gray-800 tracking-tighter uppercase italic">MyFinance Pro</h1>
-            
-            <div class="bg-slate-900 text-white p-4 rounded-2xl shadow-xl flex items-center gap-4 border border-slate-700">
-                <div class="leading-tight text-right">
-                    <p class="text-[9px] font-black uppercase text-slate-400">Saldo Atual</p>
-                    <p class="text-[9px] font-bold uppercase text-blue-400">Disponível agora</p>
-                </div>
-                <div class="flex items-center text-2xl font-black">
-                    <span class="mr-1 text-slate-500 text-lg font-bold">R$</span>
-                    <input type="number" id="saldo-disponivel" step="0.01" 
-                        onblur="salvarSaldoCaixa(this.value)" 
-                        class="bg-transparent border-b-2 border-slate-700 w-32 outline-none focus:border-blue-500 transition text-white"
-                        placeholder="0,00">
-                </div>
-            </div>
-        </header>
-
-        <div id="container-alerta" class="mb-6 hidden">
-            <div id="alerta-fluxo" class="flex items-center justify-between p-4 rounded-xl border-2 shadow-sm bg-red-50 border-red-200 text-red-800">
-                <div class="flex items-center gap-3">
-                    <span class="text-2xl">🚨</span>
-                    <div>
-                        <p class="font-black uppercase text-xs tracking-widest">Atenção ao Fluxo de Caixa</p>
-                        <p id="alerta-desc" class="text-sm font-medium"></p>
-                    </div>
-                </div>
-                <div id="alerta-valor" class="text-xl font-black"></div>
-            </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex items-center gap-4 border border-gray-200">
-            <span class="text-xs font-black text-gray-400 uppercase">Período de Análise:</span>
-            <input type="month" id="filtro-mes" class="border rounded-lg p-1 font-bold outline-none focus:border-blue-500 text-gray-700">
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-center">
-            <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-yellow-400">
-                <p class="text-gray-400 text-[10px] uppercase font-black mb-1">Total a Receber</p>
-                <p id="total-a-receber" class="text-2xl font-black text-gray-800">R$ 0,00</p>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-red-500">
-                <p class="text-gray-400 text-[10px] uppercase font-black mb-1">Total a Pagar</p>
-                <p id="total-a-pagar" class="text-2xl font-black text-red-600">R$ 0,00</p>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-emerald-500">
-                <p class="text-gray-400 text-[10px] uppercase font-black mb-1">Balanço Projetado</p>
-                <p id="saldo-diferenca" class="text-2xl font-black text-emerald-700">R$ 0,00</p>
-            </div>
-        </div>
-
-        <section class="bg-white p-5 rounded-xl shadow-md mb-8 border border-gray-100">
-            <h2 class="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest">Novo Lançamento</h2>
-            <form id="finance-form" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                <div>
-                    <label class="block text-[9px] font-black text-gray-400 uppercase mb-1">Descrição</label>
-                    <input type="text" id="desc" class="w-full border rounded p-2 text-sm outline-none focus:border-blue-400" required>
-                </div>
-                <div>
-                    <label class="block text-[9px] font-black text-gray-400 uppercase mb-1">Valor (R$)</label>
-                    <input type="number" id="valor" step="0.01" class="w-full border rounded p-2 text-sm font-bold outline-none focus:border-blue-400" required>
-                </div>
-                <div>
-                    <label class="block text-[9px] font-black text-gray-400 uppercase mb-1">Data</label>
-                    <input type="date" id="data" class="w-full border rounded p-2 text-sm outline-none focus:border-blue-400" required>
-                </div>
-                <div>
-                    <label class="block text-[9px] font-black text-gray-400 uppercase mb-1">Tipo</label>
-                    <select id="tipo" class="w-full border rounded p-2 text-sm font-bold outline-none bg-gray-50 text-gray-600">
-                        <option value="receita">Receita (+)</option>
-                        <option value="despesa">Despesa (-)</option>
-                    </select>
-                </div>
-                <button type="submit" class="bg-blue-600 text-white font-black py-2 rounded text-[10px] uppercase hover:bg-blue-700 transition shadow-lg shadow-blue-100">
-                    Lançar agora
-                </button>
-            </form>
-        </section>
-
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-gray-50 border-b">
-                    <tr>
-                        <th class="p-4 text-[10px] font-black text-gray-400 uppercase">Data</th>
-                        <th class="p-4 text-[10px] font-black text-gray-400 uppercase">Descrição</th>
-                        <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-right">Valor</th>
-                        <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-center">Status</th>
-                        <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-center">Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="lista-transacoes"></tbody>
-            </table>
-        </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-center">
+    <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-yellow-400">
+      <p class="text-gray-400 text-[10px] uppercase font-black mb-1">Total a Receber</p>
+      <p id="t-receber" class="text-2xl font-black text-gray-800">R$ 0,00</p>
     </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-red-500">
+      <p class="text-gray-400 text-[10px] uppercase font-black mb-1">Total a Pagar</p>
+      <p id="t-pagar" class="text-2xl font-black text-red-600">R$ 0,00</p>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-emerald-500">
+      <p class="text-gray-400 text-[10px] uppercase font-black mb-1">Balanço Projetado</p>
+      <p id="t-balanco" class="text-2xl font-black text-emerald-700">R$ 0,00</p>
+    </div>
+  </div>
 
-    <script>
-        const SUPABASE_URL = 'https://qyadsgivfqzmtjgzmxhr.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5YWRzZ2l2ZnF6bXRqZ3pteGhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MzE1MjcsImV4cCI6MjA4NDQwNzUyN30.Mn3eX8HzJ20CySynGriqju78qlWlYcXZr7LE9QMh9y0';
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  <section class="bg-white p-5 rounded-xl shadow-md mb-8 border border-gray-100">
+    <h2 class="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest">Novo Lançamento</h2>
+    <form id="form" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+      <input type="text" id="desc" placeholder="Descrição" class="border rounded p-2 text-sm outline-none focus:border-blue-400" required>
+      <input type="number" id="valor" step="0.01" min="0.01" placeholder="Valor (R$)" class="border rounded p-2 text-sm font-bold outline-none focus:border-blue-400" required>
+      <input type="date" id="data" class="border rounded p-2 text-sm outline-none focus:border-blue-400" required>
+      <select id="tipo" class="border rounded p-2 text-sm font-bold outline-none bg-gray-50 text-gray-600">
+        <option value="receita">Receita (+)</option>
+        <option value="despesa">Despesa (-)</option>
+      </select>
+      <button class="bg-blue-600 text-white font-black py-2 rounded text-[10px] uppercase hover:bg-blue-700 transition">Lançar agora</button>
+    </form>
+  </section>
 
-        const form = document.getElementById('finance-form');
-        const listaTransacoes = document.getElementById('lista-transacoes');
-        const filtroMes = document.getElementById('filtro-mes');
-        const campoSaldoCaixa = document.getElementById('saldo-disponivel');
+  <div class="bg-white rounded-xl shadow-lg overflow-x-auto border border-gray-200">
+    <table class="w-full text-left border-collapse min-w-[560px]">
+      <thead class="bg-gray-50 border-b">
+        <tr>
+          <th class="p-4 text-[10px] font-black text-gray-400 uppercase">Data</th>
+          <th class="p-4 text-[10px] font-black text-gray-400 uppercase">Descrição</th>
+          <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-right">Valor</th>
+          <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-center">Status</th>
+          <th class="p-4 text-[10px] font-black text-gray-400 uppercase text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody id="lista"></tbody>
+    </table>
+    <p id="vazio" class="hidden p-6 text-center text-xs text-gray-400 font-bold uppercase">Nenhum lançamento neste mês</p>
+  </div>
+</main>
 
-        // Inicialização
-        const hoje = new Date();
-        filtroMes.value = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
-        filtroMes.onchange = () => fetchAll();
+<script>
+const sb = supabase.createClient(
+  'https://qyadsgivfqzmtjgzmxhr.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5YWRzZ2l2ZnF6bXRqZ3pteGhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MzE1MjcsImV4cCI6MjA4NDQwNzUyN30.Mn3eX8HzJ20CySynGriqju78qlWlYcXZr7LE9QMh9y0'
+);
+const $ = id => document.getElementById(id);
+const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-        // SALVAR SALDO NO BANCO
-        async function salvarSaldoCaixa(valor) {
-            const num = parseFloat(valor) || 0;
-            const { error } = await _supabase.from('configuracoes').upsert({ id: 1, saldo_em_caixa: num }, { onConflict: 'id' });
-            if (error) console.error("Erro ao salvar saldo:", error.message);
-            fetchAll(); 
-        }
+let transacoes = [], saldo = 0;
 
-        async function fetchAll() {
-            const [ano, mes] = filtroMes.value.split('-');
-            const primeiroDia = `${filtroMes.value}-01`;
-            const ultimoDia = new Date(ano, mes, 0).toISOString().split('T')[0];
+// ---------- Auth ----------
+$('login-form').onsubmit = async e => {
+  e.preventDefault();
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value, password: $('senha').value });
+  $('erro-login').textContent = error ? error.message : '';
+  $('erro-login').classList.toggle('hidden', !error);
+};
+$('sair').onclick = () => sb.auth.signOut();
+sb.auth.onAuthStateChange((_, session) => {
+  $('login').classList.toggle('hidden', !!session);
+  $('app').classList.toggle('hidden', !session);
+  if (session) load(); else { transacoes = []; }
+});
 
-            const { data: transacoes } = await _supabase.from('transacoes').select('*').gte('data', primeiroDia).lte('data', ultimoDia).order('data', { ascending: true });
-            const { data: config } = await _supabase.from('configuracoes').select('saldo_em_caixa').eq('id', 1).single();
-            
-            let saldoAtual = 0;
-            if (config) {
-                saldoAtual = config.saldo_em_caixa;
-                campoSaldoCaixa.value = saldoAtual;
-            }
+// ---------- Datas ----------
+const hoje = new Date();
+const ym = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+$('mes').value = ym(hoje);
+function mudaMes(delta) {
+  const [a, m] = $('mes').value.split('-').map(Number);
+  $('mes').value = ym(new Date(a, m - 1 + delta, 1));
+  load();
+}
+$('mes').onchange = load;
+$('mes-ant').onclick = () => mudaMes(-1);
+$('mes-prox').onclick = () => mudaMes(1);
 
-            render(transacoes);
-            calc(transacoes, saldoAtual);
-        }
+// ---------- Dados ----------
+async function load() {
+  const [a, m] = $('mes').value.split('-').map(Number);
+  const ini = `${$('mes').value}-01`;
+  const fim = `${$('mes').value}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`;
+  const [t, c] = await Promise.all([
+    sb.from('transacoes').select('*').gte('data', ini).lte('data', fim).order('data', { ascending: true }),
+    sb.from('configuracoes').select('saldo_em_caixa').eq('id', 1).maybeSingle()
+  ]);
+  if (t.error) return console.error(t.error.message);
+  transacoes = t.data;
+  saldo = Number(c.data?.saldo_em_caixa) || 0;
+  if (document.activeElement !== $('saldo')) $('saldo').value = saldo;
+  render(); calc();
+}
 
-        function calc(data, saldoDisponivel) {
-            let aReceber = 0, aPagar = 0;
-            let saldoSimulado = saldoDisponivel;
-            let menorSaldo = saldoDisponivel;
-            let dataLimite = null;
+// Atualiza local primeiro (otimista) e só recarrega se o banco falhar
+async function patch(id, campos) {
+  const t = transacoes.find(x => x.id === id);
+  if (!t) return;
+  const antigo = { ...t };
+  Object.assign(t, campos);
+  render(); calc();
+  const { error } = await sb.from('transacoes').update(campos).eq('id', id);
+  if (error) { console.error(error.message); Object.assign(t, antigo); render(); calc(); }
+}
 
-            // Simulação Cronológica
-            data.forEach(t => {
-                const v = parseFloat(t.valor) || 0;
-                if (!t.status) {
-                    if (t.tipo === 'receita') {
-                        aReceber += v;
-                        saldoSimulado += v;
-                    } else {
-                        aPagar += v;
-                        saldoSimulado -= v;
-                        // Identifica a primeira data de quebra
-                        if (saldoSimulado < 0 && !dataLimite) {
-                            dataLimite = t.data;
-                        }
-                    }
-                    if (saldoSimulado < menorSaldo) menorSaldo = saldoSimulado;
-                }
-            });
+$('saldo').onchange = async e => {
+  saldo = parseFloat(e.target.value) || 0;
+  calc();
+  const { error } = await sb.from('configuracoes').upsert({ id: 1, saldo_em_caixa: saldo });
+  if (error) console.error(error.message);
+};
 
-            const fmt = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('total-a-receber').innerText = fmt(aReceber);
-            document.getElementById('total-a-pagar').innerText = fmt(aPagar);
-            document.getElementById('saldo-diferenca').innerText = fmt(aReceber - aPagar);
+$('form').onsubmit = async e => {
+  e.preventDefault();
+  const d = $('data').value;
+  const { error } = await sb.from('transacoes').insert([{
+    descricao: $('desc').value.trim(),
+    valor: parseFloat($('valor').value),
+    data: d, tipo: $('tipo').value, status: false
+  }]);
+  if (error) return alert('Erro ao lançar: ' + error.message);
+  $('form').reset();
+  $('mes').value = d.substring(0, 7);
+  load();
+};
 
-            const container = document.getElementById('container-alerta');
-            if (menorSaldo < 0) {
-                container.classList.remove('hidden');
-                const dtFmt = dataLimite ? dataLimite.split('-').reverse().slice(0, 2).join('/') : '--/--';
-                document.getElementById('alerta-desc').innerHTML = `Seu saldo cobre as despesas apenas até o dia <strong>${dtFmt}</strong>.`;
-                document.getElementById('alerta-valor').innerText = `Faltam: ${fmt(Math.abs(menorSaldo))}`;
-            } else {
-                container.classList.add('hidden');
-            }
-        }
+// ---------- Cálculo ----------
+function calc() {
+  let receber = 0, pagar = 0, sim = saldo, menor = saldo, limite = null;
+  for (const t of transacoes) {
+    if (t.status) continue;
+    const v = parseFloat(t.valor) || 0;
+    if (t.tipo === 'receita') { receber += v; sim += v; }
+    else {
+      pagar += v; sim -= v;
+      if (sim < 0 && !limite) limite = t.data;
+    }
+    if (sim < menor) menor = sim;
+  }
+  $('t-receber').textContent = fmt(receber);
+  $('t-pagar').textContent = fmt(pagar);
+  $('t-balanco').textContent = fmt(receber - pagar);
+  $('alerta').classList.toggle('hidden', menor >= 0);
+  if (menor < 0) {
+    const dt = limite ? limite.split('-').reverse().slice(0, 2).join('/') : '--/--';
+    $('alerta-desc').innerHTML = `Seu saldo cobre as despesas apenas até o dia <strong>${dt}</strong>.`;
+    $('alerta-valor').textContent = `Faltam: ${fmt(Math.abs(menor))}`;
+  }
+}
 
-        function render(data) {
-            listaTransacoes.innerHTML = '';
-            data.forEach(t => {
-                const isFin = t.status === true;
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 border-b border-gray-100 text-[11px] transition";
-                tr.innerHTML = `
-                    <td class="p-3"><input type="date" value="${t.data}" onchange="updateField(${t.id}, 'data', this.value)" class="bg-transparent outline-none font-mono"></td>
-                    <td class="p-3"><input type="text" value="${t.descricao}" onchange="updateField(${t.id}, 'descricao', this.value)" class="bg-transparent outline-none w-full uppercase font-bold text-gray-600"></td>
-                    <td class="p-3 text-right font-black ${t.tipo === 'receita' ? 'text-emerald-600' : 'text-red-500'}">
-                        <div class="flex items-center justify-end">
-                            <span>R$</span>
-                            <input type="number" step="0.01" value="${t.valor}" onchange="updateField(${t.id}, 'valor', this.value)" class="bg-transparent w-20 text-right outline-none">
-                        </div>
-                    </td>
-                    <td class="p-3 text-center">
-                        <button onclick="toggleStatus(${t.id}, ${t.status})" class="px-3 py-1 rounded-full text-[9px] font-black border-2 transition uppercase ${isFin ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-white text-gray-400 border-gray-200'}">
-                            ${t.tipo === 'receita' ? (isFin ? 'Recebido' : 'A Receber') : (isFin ? 'Pago' : 'Pendente')}
-                        </button>
-                    </td>
-                    <td class="p-3 text-center">
-                        <button onclick="deleteItem(${t.id})" class="text-gray-300 hover:text-red-500 font-black px-2 transition">X</button>
-                    </td>
-                `;
-                listaTransacoes.appendChild(tr);
-            });
-        }
+// ---------- Render ----------
+function render() {
+  $('vazio').classList.toggle('hidden', transacoes.length > 0);
+  $('lista').innerHTML = transacoes.map(t => {
+    const rec = t.tipo === 'receita', ok = t.status === true;
+    return `<tr class="hover:bg-gray-50 border-b border-gray-100 text-[11px]" data-id="${t.id}">
+      <td class="p-3"><input type="date" value="${esc(t.data)}" data-f="data" class="bg-transparent outline-none font-mono"></td>
+      <td class="p-3"><input type="text" value="${esc(t.descricao)}" data-f="descricao" class="bg-transparent outline-none w-full uppercase font-bold text-gray-600"></td>
+      <td class="p-3 text-right font-black ${rec ? 'text-emerald-600' : 'text-red-500'}">
+        <div class="flex items-center justify-end"><span>R$</span>
+        <input type="number" step="0.01" value="${esc(t.valor)}" data-f="valor" class="bg-transparent w-20 text-right outline-none"></div>
+      </td>
+      <td class="p-3 text-center">
+        <button data-act="status" class="px-3 py-1 rounded-full text-[9px] font-black border-2 uppercase ${ok ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-white text-gray-400 border-gray-200'}">
+          ${rec ? (ok ? 'Recebido' : 'A Receber') : (ok ? 'Pago' : 'Pendente')}
+        </button>
+      </td>
+      <td class="p-3 text-center"><button data-act="del" class="text-gray-300 hover:text-red-500 font-black px-2">X</button></td>
+    </tr>`;
+  }).join('');
+}
 
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            const d = document.getElementById('data').value;
-            await _supabase.from('transacoes').insert([{
-                descricao: document.getElementById('desc').value,
-                valor: parseFloat(document.getElementById('valor').value),
-                data: d,
-                tipo: document.getElementById('tipo').value,
-                status: false
-            }]);
-            form.reset();
-            filtroMes.value = d.substring(0, 7);
-            fetchAll();
-        };
-
-        async function updateField(id, field, value) {
-            const val = (field === 'valor') ? parseFloat(value) : value;
-            await _supabase.from('transacoes').update({ [field]: val }).eq('id', id);
-            fetchAll();
-        }
-
-        async function toggleStatus(id, current) {
-            await _supabase.from('transacoes').update({ status: !current }).eq('id', id);
-            fetchAll();
-        }
-
-        async function deleteItem(id) {
-            if(confirm("Deseja excluir este registro?")) {
-                await _supabase.from('transacoes').delete().eq('id', id);
-                fetchAll();
-            }
-        }
-
-        fetchAll();
-    </script>
+// Delegação de eventos: um listener só para a tabela inteira
+$('lista').addEventListener('change', e => {
+  const f = e.target.dataset.f, id = +e.target.closest('tr').dataset.id;
+  if (!f) return;
+  const v = f === 'valor' ? parseFloat(e.target.value) : e.target.value;
+  if (f === 'valor' && !(v > 0)) return render();
+  patch(id, { [f]: v });
+});
+$('lista').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const id = +b.closest('tr').dataset.id, t = transacoes.find(x => x.id === id);
+  if (b.dataset.act === 'status') patch(id, { status: !t.status });
+  else if (confirm('Deseja excluir este registro?')) {
+    const { error } = await sb.from('transacoes').delete().eq('id', id);
+    if (error) return alert(error.message);
+    transacoes = transacoes.filter(x => x.id !== id);
+    render(); calc();
+  }
+});
+</script>
 </body>
 </html>
