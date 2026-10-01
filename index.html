@@ -109,6 +109,22 @@
     </div>
   </section>
 
+  <details class="bg-white rounded-xl shadow-md mb-8 border border-gray-100">
+    <summary class="p-5 cursor-pointer text-[10px] font-black text-gray-400 uppercase tracking-widest">Despesas fixas (modelo mensal)</summary>
+    <div class="px-5 pb-5">
+      <p class="text-[11px] text-gray-500 mb-4">Entram todo mês como pendentes. "Palavra no extrato" faz o importador quitar a despesa quando achar esse texto no extrato.</p>
+      <div id="fixas-lista" class="space-y-3 mb-4"></div>
+      <form id="fixa-form" class="grid grid-cols-2 md:grid-cols-5 gap-2 items-end mb-4">
+        <input id="fx-desc" placeholder="Nome" required class="col-span-2 md:col-span-1 border rounded p-2 text-sm min-w-0">
+        <input id="fx-dia" type="number" min="1" max="31" placeholder="Dia" required class="border rounded p-2 text-sm min-w-0">
+        <input id="fx-valor" type="number" step="0.01" min="0" placeholder="Valor" class="border rounded p-2 text-sm min-w-0">
+        <input id="fx-palavra" placeholder="Palavra no extrato" class="border rounded p-2 text-sm min-w-0">
+        <button class="col-span-2 md:col-span-1 bg-blue-600 text-white font-black py-2 rounded text-[10px] uppercase hover:bg-blue-700">Adicionar</button>
+      </form>
+      <button id="gerar-fixas" class="w-full md:w-auto border-2 border-blue-600 text-blue-600 font-black px-4 py-2 rounded text-[10px] uppercase hover:bg-blue-50">Gerar fixas neste mês</button>
+    </div>
+  </details>
+
   <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 mb-8">
     <div class="hidden md:grid md:grid-cols-[110px_1fr_130px_130px_120px_40px] gap-2 p-4 bg-gray-50 border-b text-[10px] font-black text-gray-400 uppercase">
       <span>Data</span><span>Descrição</span><span>Categoria</span><span class="text-right">Valor</span><span class="text-center">Status</span><span></span>
@@ -135,7 +151,9 @@ const CATS = ['Moradia','Alimentação','Transporte','Saúde','Lazer','Contas','
 const optCats = sel => CATS.map(c => `<option${c === sel ? ' selected' : ''}>${c}</option>`).join('');
 $('categoria').innerHTML = optCats('Outros');
 
-let transacoes = [], atrasadas = [], saldo = 0;
+let transacoes = [], atrasadas = [], saldo = 0, fixas = [], geradas = [];
+const tentadas = new Set();
+const fimMes = m => { const [a, n] = m.split('-').map(Number); return `${m}-${String(new Date(a, n, 0).getDate()).padStart(2, '0')}`; };
 
 // ---------- Auth ----------
 $('login-form').onsubmit = async e => {
@@ -168,17 +186,26 @@ async function load() {
   const [a, m] = $('mes').value.split('-').map(Number);
   const ini = `${$('mes').value}-01`;
   const fim = `${$('mes').value}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`;
-  const [t, c, at] = await Promise.all([
+  const [t, c, at, fx] = await Promise.all([
     sb.from('transacoes').select('*').gte('data', ini).lte('data', fim).order('data', { ascending: true }),
-    sb.from('configuracoes').select('saldo_em_caixa').eq('id', 1).maybeSingle(),
-    sb.from('transacoes').select('*').lt('data', ini).eq('status', false).order('data', { ascending: true })
+    sb.from('configuracoes').select('saldo_em_caixa,fixas_geradas').eq('id', 1).maybeSingle(),
+    sb.from('transacoes').select('*').lt('data', ini).eq('status', false).order('data', { ascending: true }),
+    sb.from('despesas_fixas').select('*').order('dia', { ascending: true })
   ]);
   if (t.error) return console.error(t.error.message);
   transacoes = t.data;
   atrasadas = at.data || [];
   saldo = Number(c.data?.saldo_em_caixa) || 0;
+  fixas = fx.data || [];
+  geradas = (c.data?.fixas_geradas || '').split(',').filter(Boolean);
   if (document.activeElement !== $('saldo')) $('saldo').value = saldo;
-  render(); calc();
+  render(); calc(); renderFixas();
+  // Mês atual ou futuro ainda sem fixas: gera automaticamente (uma tentativa por mês por sessão)
+  const mes = $('mes').value;
+  if (mes >= ym(new Date()) && !geradas.includes(mes) && !tentadas.has(mes) && fixas.length) {
+    tentadas.add(mes);
+    await gerarFixas(mes);
+  }
 }
 
 async function salvarSaldo() {
@@ -327,10 +354,26 @@ function novosImport() {
   return { novos, dup, transf };
 }
 
+// Despesas do extrato que quitam uma despesa fixa pendente (mesmo mês, palavra encontrada, data mais próxima)
+function casarFixas(novos) {
+  const livres = (imp.pend || []).map(t => ({ ...t, fx: fixas.find(f => f.id === t.fixa_id) })).filter(t => t.fx && t.fx.palavra);
+  const dia = d => new Date(d + 'T00:00:00').getTime();
+  const casados = [], resto = [];
+  for (const r of novos) {
+    if (r.tipo !== 'despesa') { resto.push(r); continue; }
+    const cand = livres.filter(t => !t.usado && t.data.slice(0, 7) === r.data.slice(0, 7) && r.descricao.toLowerCase().includes(t.fx.palavra))
+      .sort((x, y) => Math.abs(dia(x.data) - dia(r.data)) - Math.abs(dia(y.data) - dia(r.data)));
+    if (cand[0]) { cand[0].usado = true; casados.push({ r, t: cand[0] }); } else resto.push(r);
+  }
+  return { casados, resto };
+}
+
 function resumoImport() {
   const { novos, dup, transf } = novosImport();
+  const { casados } = casarFixas(novos);
   const soma = tp => novos.filter(r => r.tipo === tp).reduce((s, r) => s + r.valor, 0);
-  $('imp-resumo').innerHTML = `${imp.linhas.length} lançamentos no arquivo: <strong>${novos.length} novos</strong> (receitas ${fmt(soma('receita'))} · despesas ${fmt(soma('despesa'))}), ${dup} já existentes, ${transf} ignorados.`;
+  $('imp-resumo').innerHTML = `${imp.linhas.length} lançamentos no arquivo: <strong>${novos.length} novos</strong> (receitas ${fmt(soma('receita'))} · despesas ${fmt(soma('despesa'))}), ${dup} já existentes, ${transf} ignorados.` +
+    (casados.length ? `<br>✅ ${casados.length} quitam despesas fixas pendentes: ${casados.map(x => esc(x.t.descricao)).join(', ')}.` : '');
   $('imp-ok').disabled = !novos.length;
 }
 
@@ -347,9 +390,11 @@ $('arq').onchange = async e => {
     const datas = linhas.map(l => l.data).sort();
     const { data: ex, error } = await sb.from('transacoes').select('data,descricao,valor,tipo').gte('data', datas[0]).lte('data', datas[datas.length - 1]);
     if (error) throw error;
+    const { data: pend } = await sb.from('transacoes').select('id,data,descricao,valor,fixa_id').eq('status', false).not('fixa_id', 'is', null)
+      .gte('data', datas[0].slice(0, 7) + '-01').lte('data', fimMes(datas[datas.length - 1].slice(0, 7)));
     const existentes = {};
     for (const r of ex) { const k = chaveDe(r); existentes[k] = (existentes[k] || 0) + 1; }
-    imp = { linhas, existentes, saldoExtrato, ultimo: datas[datas.length - 1] };
+    imp = { linhas, existentes, saldoExtrato, pend: pend || [], ultimo: datas[datas.length - 1] };
     $('imp-saldo-v').textContent = saldoExtrato != null ? fmt(saldoExtrato) : 'indisponível';
     $('imp-saldo').checked = saldoExtrato != null;
     $('imp-saldo').disabled = saldoExtrato == null;
@@ -365,18 +410,93 @@ $('imp-ok').onclick = async () => {
   const { novos } = novosImport();
   if (!novos.length) return;
   $('imp-ok').disabled = true;
+  const { casados, resto } = casarFixas(novos);
   // Importados entram como já pagos/recebidos (o extrato é o que já aconteceu)
-  const rows = novos.map(r => ({ descricao: r.descricao, valor: r.valor, data: r.data, tipo: r.tipo, categoria: r.categoria, status: true }));
-  const { error } = await sb.from('transacoes').insert(rows);
-  if (error) { $('imp-ok').disabled = false; return alert('Erro ao importar: ' + error.message); }
+  const rows = resto.map(r => ({ descricao: r.descricao, valor: r.valor, data: r.data, tipo: r.tipo, categoria: r.categoria, status: true }));
+  if (rows.length) {
+    const { error } = await sb.from('transacoes').insert(rows);
+    if (error) { $('imp-ok').disabled = false; return alert('Erro ao importar: ' + error.message); }
+  }
+  // Fixas pendentes viram pagas, com valor/data/descrição reais do extrato (assim reimportar não duplica)
+  const ups = await Promise.all(casados.map(({ r, t }) =>
+    sb.from('transacoes').update({ valor: r.valor, data: r.data, descricao: r.descricao, status: true }).eq('id', t.id)));
+  const falha = ups.find(u => u.error);
+  if (falha) alert('Erro ao quitar uma despesa fixa: ' + falha.error.message);
   if ($('imp-saldo').checked && imp.saldoExtrato != null) { saldo = imp.saldoExtrato; await salvarSaldo(); }
   $('mes').value = imp.ultimo.substring(0, 7);
   $('arq').value = '';
   $('imp').classList.add('hidden');
   imp = null;
   await load();
-  alert(`${novos.length} lançamentos importados.`);
+  alert(`${novos.length} lançamentos importados (${casados.length} quitaram despesas fixas).`);
 };
+
+// ---------- Despesas fixas ----------
+async function gerarFixas(mes, manual) {
+  const [a, m] = mes.split('-').map(Number), ultimo = new Date(a, m, 0).getDate();
+  const ja = new Set(transacoes.filter(t => t.fixa_id).map(t => t.fixa_id));
+  const rows = fixas.filter(f => !ja.has(f.id)).map(f => ({
+    descricao: f.descricao, valor: Number(f.valor) || 0,
+    data: `${mes}-${String(Math.min(f.dia, ultimo)).padStart(2, '0')}`,
+    tipo: 'despesa', categoria: f.categoria || 'Outros', status: false, fixa_id: f.id
+  }));
+  if (rows.length) {
+    const { error } = await sb.from('transacoes').insert(rows);
+    if (error) return alert('Erro ao gerar despesas fixas: ' + error.message);
+  }
+  if (!geradas.includes(mes)) {
+    geradas.push(mes);
+    await sb.from('configuracoes').upsert({ id: 1, fixas_geradas: geradas.join(',') });
+  }
+  if (manual && !rows.length) alert('Todas as despesas fixas já estão neste mês.');
+  await load();
+}
+
+function renderFixas() {
+  $('fixas-lista').innerHTML = fixas.map(f => `
+    <div data-fid="${f.id}" class="grid grid-cols-2 md:grid-cols-[1fr_70px_110px_130px_1fr_32px] gap-2 items-end text-[11px]">
+      <input data-ff="descricao" value="${esc(f.descricao)}" class="col-span-2 md:col-span-1 border rounded p-1.5 font-bold min-w-0">
+      <label><span class="text-[9px] text-gray-400 uppercase md:hidden">Dia</span><input data-ff="dia" type="number" min="1" max="31" value="${f.dia}" class="w-full border rounded p-1.5 min-w-0"></label>
+      <label><span class="text-[9px] text-gray-400 uppercase md:hidden">Valor</span><input data-ff="valor" type="number" step="0.01" min="0" value="${f.valor ?? 0}" class="w-full border rounded p-1.5 min-w-0"></label>
+      <select data-ff="categoria" class="border rounded p-1.5 min-w-0">${optCats(f.categoria || 'Outros')}</select>
+      <input data-ff="palavra" value="${esc(f.palavra)}" placeholder="Palavra no extrato" class="border rounded p-1.5 min-w-0">
+      <button data-fdel aria-label="Excluir" class="text-gray-300 hover:text-red-500 font-black">✕</button>
+    </div>`).join('');
+}
+
+$('fixas-lista').addEventListener('change', async e => {
+  const campo = e.target.dataset.ff;
+  if (!campo) return;
+  const id = +e.target.closest('[data-fid]').dataset.fid, fx = fixas.find(x => x.id === id);
+  let v = e.target.value;
+  if (campo === 'dia') v = Math.min(31, Math.max(1, parseInt(v) || 1));
+  else if (campo === 'valor') v = Math.max(0, parseFloat(v) || 0);
+  else if (campo === 'palavra') v = v.trim().toLowerCase() || null;
+  else if (campo === 'descricao') v = v.trim() || fx.descricao;
+  const { error } = await sb.from('despesas_fixas').update({ [campo]: v }).eq('id', id);
+  if (error) alert(error.message); else fx[campo] = v;
+  renderFixas();
+});
+$('fixas-lista').addEventListener('click', async e => {
+  const b = e.target.closest('[data-fdel]');
+  if (!b || !confirm('Remover esta despesa fixa do modelo? (Lançamentos já gerados continuam.)')) return;
+  const id = +b.closest('[data-fid]').dataset.fid;
+  const { error } = await sb.from('despesas_fixas').delete().eq('id', id);
+  if (error) return alert(error.message);
+  fixas = fixas.filter(x => x.id !== id);
+  renderFixas();
+});
+$('fixa-form').onsubmit = async e => {
+  e.preventDefault();
+  const { data, error } = await sb.from('despesas_fixas').insert([{
+    descricao: $('fx-desc').value.trim(), dia: Math.min(31, Math.max(1, parseInt($('fx-dia').value) || 1)),
+    valor: parseFloat($('fx-valor').value) || 0, palavra: $('fx-palavra').value.trim().toLowerCase() || null, categoria: 'Outros'
+  }]).select().single();
+  if (error) return alert(error.message);
+  fixas.push(data); fixas.sort((x, y) => x.dia - y.dia);
+  $('fixa-form').reset(); renderFixas();
+};
+$('gerar-fixas').onclick = () => gerarFixas($('mes').value, true);
 
 // ---------- Render ----------
 function render() {
